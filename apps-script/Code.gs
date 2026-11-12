@@ -22,7 +22,15 @@ var MAX_TARGET = 5;
 
 function doGet(e) {
   var c = String((e && e.parameter && e.parameter.c) || '').replace(/[^a-z0-9]/g, '');
-  var t = HtmlService.createTemplateFromFile('Index');
+  // HTML 파일 이름을 조금 다르게 만들었어도 찾아 준다.
+  var names = ['Index', 'index', 'Index.html', 'index.html', 'INDEX'], t = null;
+  for (var i = 0; i < names.length && !t; i++) {
+    try { t = HtmlService.createTemplateFromFile(names[i]); } catch (err) { t = null; }
+  }
+  if (!t) {
+    return HtmlService.createHtmlOutput('<p style="font:20px sans-serif;padding:30px">HTML 파일을 찾을 수 없어요.<br>' +
+      'Apps Script 편집기 왼쪽 파일 목록에 <b>Index.html</b> 파일이 있는지 확인하고, 저장한 뒤 새 버전으로 다시 배포해 주세요.</p>');
+  }
   t.boot = JSON.stringify({ c: c, url: ScriptApp.getService().getUrl() || '' });
   return t.evaluate()
     .setTitle('우리 반 1인 1역')
