@@ -1,0 +1,483 @@
+/**
+ * 우리 반 1인 1역 — Google Apps Script 서버 코드
+ *
+ * 시트 구성 (학급마다 스프레드시트 1개)
+ *   명단   : 번호 | 이름 | 역할 | 그림 | 하루 횟수
+ *   기록   : 번호 | 이름 | 역할 | 2026-03-02 | 2026-03-03 | ...   (칸 값: ○, ○○, 결석)
+ *   쉬는날 : 시작 | 끝 | 이름
+ *
+ * 학급 목록(이름, 시트 ID, 비밀번호 해시)은 스크립트 속성에 저장한다.
+ */
+
+var TZ = 'Asia/Seoul';
+var SH_ROSTER = '명단';
+var SH_LOG = '기록';
+var SH_REST = '쉬는날';
+var ROSTER_HEAD = ['번호', '이름', '역할', '그림', '하루 횟수'];
+var LOG_HEAD = ['번호', '이름', '역할'];
+var REST_HEAD = ['시작', '끝', '이름'];
+var MARK = '○';
+var ABSENT = '결석';
+var MAX_TARGET = 5;
+
+function doGet(e) {
+  var c = String((e && e.parameter && e.parameter.c) || '').replace(/[^a-z0-9]/g, '');
+  var t = HtmlService.createTemplateFromFile('Index');
+  t.boot = JSON.stringify({ c: c, url: ScriptApp.getService().getUrl() || '' });
+  return t.evaluate()
+    .setTitle('우리 반 1인 1역')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/* ---------- 작은 도우미 ---------- */
+
+function str_(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/^\s+|\s+$/g, '');
+}
+
+function clamp_(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function today_() {
+  return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+}
+
+function ms_(d) {
+  var p = d.split('-');
+  return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+}
+
+function dow_(d) {
+  return new Date(ms_(d)).getUTCDay();
+}
+
+function addDays_(d, n) {
+  return new Date(ms_(d) + n * 86400000).toISOString().slice(0, 10);
+}
+
+/** 시트 칸 값을 yyyy-MM-dd 문자열로. 날짜가 아니면 ''. */
+function normDate_(v, tz) {
+  if (v instanceof Date) return Utilities.formatDate(v, tz || TZ, 'yyyy-MM-dd');
+  var s = str_(v);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function marks_(n) {
+  var s = '';
+  for (var i = 0; i < n; i++) s += MARK;
+  return s;
+}
+
+function parseCell_(v) {
+  var s = str_(v);
+  if (s === ABSENT) return { count: 0, absent: true };
+  var n = 0;
+  for (var i = 0; i < s.length; i++) if (s.charAt(i) === MARK) n++;
+  if (!n && /^\d+$/.test(s)) n = parseInt(s, 10);
+  return { count: n, absent: false };
+}
+
+/* ---------- 학급 목록 (스크립트 속성) ---------- */
+
+function props_() {
+  return PropertiesService.getScriptProperties();
+}
+
+function getClass_(code) {
+  code = String(code || '').replace(/[^a-z0-9]/g, '');
+  var raw = code ? props_().getProperty('class_' + code) : null;
+  if (!raw) throw new Error('학급을 찾을 수 없어요.');
+  var c = JSON.parse(raw);
+  c.code = code;
+  return c;
+}
+
+function putClass_(c) {
+  props_().setProperty('class_' + c.code, JSON.stringify({
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false
+  }));
+}
+
+function hash_(salt, pw) {
+  var b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8);
+  var s = '';
+  for (var i = 0; i < b.length; i++) {
+    var v = (b[i] + 256) % 256;
+    s += (v < 16 ? '0' : '') + v.toString(16);
+  }
+  return s;
+}
+
+function checkPw_(cls, pw) {
+  if (hash_(cls.code, String(pw || '')) !== cls.pw) {
+    Utilities.sleep(500);
+    throw new Error('비밀번호가 맞지 않아요.');
+  }
+}
+
+function parseSheetId_(url) {
+  var s = str_(url);
+  var m = s.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(s)) return s;
+  throw new Error('스프레드시트 주소가 올바르지 않아요. 주소창의 주소를 그대로 붙여 넣어 주세요.');
+}
+
+function sheetUrl_(id) {
+  return 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+}
+
+function openBook_(cls) {
+  try {
+    return SpreadsheetApp.openById(cls.sheetId);
+  } catch (err) {
+    throw new Error('스프레드시트를 열 수 없어요. 시트 공유 설정에서 "링크가 있는 모든 사용자 - 편집자"로 바꾸었는지 확인해 주세요.');
+  }
+}
+
+/* ---------- 시트 읽기 ---------- */
+
+function sheet_(ss, name, head) {
+  var sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, head.length).setValues([head]);
+    try {
+      sh.getRange(1, 1, 1, head.length).setFontWeight('bold');
+      sh.setFrozenRows(1);
+      if (name === SH_LOG) sh.setFrozenColumns(3);
+    } catch (err) { /* 꾸밈 실패는 무시 */ }
+  }
+  return sh;
+}
+
+function readRoster_(ss) {
+  var v = sheet_(ss, SH_ROSTER, ROSTER_HEAD).getDataRange().getValues();
+  var out = [], seen = {};
+  for (var i = 1; i < v.length; i++) {
+    var name = str_(v[i][1]);
+    if (!name) continue;
+    var no = str_(v[i][0]) || name;
+    if (seen['k' + no]) continue;
+    seen['k' + no] = true;
+    out.push({
+      no: no, name: name, role: str_(v[i][2]), icon: str_(v[i][3]),
+      target: clamp_(parseInt(v[i][4], 10) || 1, 1, MAX_TARGET)
+    });
+  }
+  return out;
+}
+
+function readLog_(ss) {
+  var sh = sheet_(ss, SH_LOG, LOG_HEAD);
+  var v = sh.getDataRange().getValues();
+  var tz = ss.getSpreadsheetTimeZone();
+  var dateCol = {}, rowOf = {};
+  for (var c = 3; c < v[0].length; c++) {
+    var d = normDate_(v[0][c], tz);
+    if (d && dateCol[d] === undefined) dateCol[d] = c;
+  }
+  for (var r = 1; r < v.length; r++) {
+    var k = 'k' + str_(v[r][0]);
+    if (k !== 'k' && rowOf[k] === undefined) rowOf[k] = r;
+  }
+  return { sh: sh, v: v, dateCol: dateCol, rowOf: rowOf };
+}
+
+function readRest_(ss) {
+  var v = sheet_(ss, SH_REST, REST_HEAD).getDataRange().getValues();
+  var tz = ss.getSpreadsheetTimeZone();
+  var out = [];
+  for (var i = 1; i < v.length; i++) {
+    var a = normDate_(v[i][0], tz);
+    if (!a) continue;
+    var b = normDate_(v[i][1], tz) || a;
+    if (b < a) b = a;
+    out.push({ start: a, end: b, name: str_(v[i][2]) });
+  }
+  return out;
+}
+
+function restReason_(d, rest) {
+  for (var i = 0; i < rest.length; i++) {
+    if (d >= rest[i].start && d <= rest[i].end) return rest[i].name || '쉬는 날';
+  }
+  var w = dow_(d);
+  return (w === 0 || w === 6) ? '주말' : '';
+}
+
+/* ---------- 화면에 필요한 상태 만들기 ---------- */
+
+function buildState_(cls, ss) {
+  var roster = readRoster_(ss), log = readLog_(ss), rest = readRest_(ss);
+  var today = today_();
+  var dates = [];
+  for (var d in log.dateCol) dates.push(d);
+  dates.sort();
+
+  var monday = addDays_(today, -((dow_(today) + 6) % 7));
+  var week = [];
+  for (var i = 0; i < 5; i++) {
+    var wd = addDays_(monday, i);
+    week.push({ date: wd, rest: !!restReason_(wd, rest) });
+  }
+  var month = today.slice(0, 7);
+
+  var students = [];
+  for (var s = 0; s < roster.length; s++) {
+    var st = roster[s];
+    var row = log.rowOf['k' + st.no];
+    var cellAt = function (date) {
+      var c = log.dateCol[date];
+      if (row === undefined || c === undefined || c >= log.v[row].length) return null;
+      return parseCell_(log.v[row][c]);
+    };
+    var total = 0, monthFull = 0, monthDays = 0, streak = 0, streakOpen = true;
+    for (var k = dates.length - 1; k >= 0; k--) {
+      var cell = cellAt(dates[k]) || { count: 0, absent: false };
+      var full = !cell.absent && cell.count >= st.target;
+      if (full) total++;
+      if (dates[k].slice(0, 7) === month && !cell.absent) {
+        monthDays++;
+        if (full) monthFull++;
+      }
+      if (dates[k] < today && streakOpen && !cell.absent) {
+        if (full) streak++; else streakOpen = false;
+      }
+    }
+    var wk = [];
+    for (var j = 0; j < week.length; j++) {
+      var wc = cellAt(week[j].date);
+      if (wc && wc.absent) wk.push('absent');
+      else if (wc && wc.count >= st.target) wk.push('full');
+      else if (wc && wc.count > 0) wk.push('part');
+      else if (week[j].date > today) wk.push('future');
+      else if (week[j].rest) wk.push('rest');
+      else wk.push('none');
+    }
+    var now = cellAt(today) || { count: 0, absent: false };
+    students.push({
+      no: st.no, name: st.name, role: st.role, icon: st.icon, target: st.target,
+      done: Math.min(now.count, st.target), absent: now.absent,
+      streak: streak, week: wk, monthFull: monthFull, monthDays: monthDays, total: total
+    });
+  }
+
+  return {
+    code: cls.code, name: cls.name, sound: cls.sound !== false,
+    today: today, dow: dow_(today), rest: restReason_(today, rest),
+    week: week, students: students
+  };
+}
+
+/* ---------- 누구나 부를 수 있는 함수 ---------- */
+
+function listClasses() {
+  var all = props_().getProperties(), out = [];
+  for (var k in all) {
+    if (k.indexOf('class_') !== 0) continue;
+    try { out.push({ code: k.slice(6), name: JSON.parse(all[k]).name }); } catch (err) { /* 건너뜀 */ }
+  }
+  out.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
+  return out;
+}
+
+function createClass(name, sheetUrl, pw) {
+  name = str_(name).slice(0, 20);
+  pw = String(pw || '');
+  if (!name) throw new Error('학급 이름을 적어 주세요.');
+  if (pw.length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
+  var id = str_(sheetUrl) ? parseSheetId_(sheetUrl) : SpreadsheetApp.create('1인 1역 기록 - ' + name).getId();
+  var code = '';
+  do {
+    code = '';
+    for (var i = 0; i < 6; i++) code += 'abcdefghjkmnpqrstuvwxyz23456789'.charAt(Math.floor(Math.random() * 31));
+  } while (props_().getProperty('class_' + code));
+  var cls = { code: code, name: name, sheetId: id, sound: true };
+  cls.pw = hash_(code, pw);
+  var ss = openBook_(cls);
+  sheet_(ss, SH_ROSTER, ROSTER_HEAD);
+  sheet_(ss, SH_LOG, LOG_HEAD);
+  sheet_(ss, SH_REST, REST_HEAD);
+  putClass_(cls);
+  return { code: code };
+}
+
+function getState(code) {
+  var cls = getClass_(code);
+  return buildState_(cls, openBook_(cls));
+}
+
+/** 오늘 칸을 고친다. fn(현재 칸, 학생) -> { text: 새 값, out: 돌려줄 값 } */
+function mutate_(cls, no, date, fn) {
+  if (date !== today_()) return { stale: true };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = openBook_(cls);
+    var roster = readRoster_(ss), st = null;
+    for (var i = 0; i < roster.length; i++) if (roster[i].no === String(no)) st = roster[i];
+    if (!st) return { stale: true };
+    var log = readLog_(ss), sh = log.sh;
+    var c = log.dateCol[date];
+    var r = log.rowOf['k' + st.no];
+    var cur = '';
+    if (r !== undefined && c !== undefined && c < log.v[r].length) cur = log.v[r][c];
+    if (c === undefined) {
+      c = Math.max(sh.getLastColumn(), 3);
+      sh.getRange(1, c + 1).setNumberFormat('@').setValue(date);
+    }
+    if (r === undefined) {
+      r = Math.max(sh.getLastRow(), 1);
+      sh.getRange(r + 1, 1, 1, 3).setNumberFormat('@').setValues([[st.no, st.name, st.role]]);
+    }
+    var next = fn(parseCell_(cur), st);
+    sh.getRange(r + 1, c + 1).setValue(next.text);
+    return next.out;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 학생이 터치했을 때. delta 는 +1(도장) 또는 -1(지우기). */
+function record(code, no, delta, date) {
+  var cls = getClass_(code);
+  delta = delta > 0 ? 1 : -1;
+  return mutate_(cls, no, date, function (cell, st) {
+    var n = clamp_(cell.count + delta, 0, st.target);
+    return { text: marks_(n), out: { no: st.no, done: n } };
+  });
+}
+
+/* ---------- 비밀번호가 필요한 함수 (설정) ---------- */
+
+function auth(code, pw) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var ss = openBook_(cls);
+  return {
+    name: cls.name, sound: cls.sound !== false, sheetUrl: sheetUrl_(cls.sheetId),
+    roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
+  };
+}
+
+function saveRoster(code, pw, list) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var rows = [], seen = {};
+  for (var i = 0; i < (list || []).length; i++) {
+    var it = list[i] || {};
+    var name = str_(it.name).slice(0, 12);
+    if (!name) continue;
+    var no = str_(it.no).slice(0, 6) || String(rows.length + 1);
+    if (seen['k' + no]) throw new Error('번호가 겹쳐요: ' + no + '번');
+    seen['k' + no] = true;
+    rows.push([no, name, str_(it.role).slice(0, 20), str_(it.icon).slice(0, 8),
+      clamp_(parseInt(it.target, 10) || 1, 1, MAX_TARGET)]);
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = openBook_(cls);
+    var sh = sheet_(ss, SH_ROSTER, ROSTER_HEAD);
+    var last = sh.getLastRow();
+    if (last > 1) sh.getRange(2, 1, last - 1, ROSTER_HEAD.length).clearContent();
+    if (rows.length) {
+      sh.getRange(2, 1, rows.length, 1).setNumberFormat('@');
+      sh.getRange(2, 1, rows.length, ROSTER_HEAD.length).setValues(rows);
+    }
+    // 기록 시트의 이름·역할도 맞춰 둔다.
+    var log = readLog_(ss);
+    for (var j = 0; j < rows.length; j++) {
+      var r = log.rowOf['k' + rows[j][0]];
+      if (r !== undefined && (str_(log.v[r][1]) !== rows[j][1] || str_(log.v[r][2]) !== rows[j][2])) {
+        log.sh.getRange(r + 1, 2, 1, 2).setValues([[rows[j][1], rows[j][2]]]);
+      }
+    }
+    return buildState_(cls, ss);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setAbsent(code, pw, no, absent, date) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  return mutate_(cls, no, date, function (cell, st) {
+    if (absent) return { text: ABSENT, out: { no: st.no, absent: true, done: 0 } };
+    return { text: cell.absent ? '' : marks_(cell.count), out: { no: st.no, absent: false, done: cell.absent ? 0 : cell.count } };
+  });
+}
+
+function saveRest(code, pw, list) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var rows = [];
+  for (var i = 0; i < (list || []).length; i++) {
+    var a = normDate_(list[i].start), b = normDate_(list[i].end) || a;
+    if (!a) continue;
+    if (b < a) b = a;
+    rows.push([a, b, str_(list[i].name).slice(0, 20)]);
+  }
+  rows.sort(function (x, y) { return x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0; });
+  var ss = openBook_(cls);
+  var sh = sheet_(ss, SH_REST, REST_HEAD);
+  var last = sh.getLastRow();
+  if (last > 1) sh.getRange(2, 1, last - 1, 3).clearContent();
+  if (rows.length) sh.getRange(2, 1, rows.length, 3).setNumberFormat('@').setValues(rows);
+  return buildState_(cls, ss);
+}
+
+/** 학급 이름, 효과음, 비밀번호, 스프레드시트 주소 변경. 바꿀 것만 넣는다. */
+function updateClass(code, pw, change) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  change = change || {};
+  if (change.name !== undefined) {
+    var name = str_(change.name).slice(0, 20);
+    if (!name) throw new Error('학급 이름을 적어 주세요.');
+    cls.name = name;
+  }
+  if (change.sound !== undefined) cls.sound = !!change.sound;
+  if (change.newPw !== undefined) {
+    if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
+    cls.pw = hash_(cls.code, String(change.newPw));
+  }
+  var copied = false;
+  if (change.sheetUrl !== undefined) {
+    var id = parseSheetId_(change.sheetUrl);
+    if (id !== cls.sheetId) {
+      var oldBook = openBook_(cls);
+      var next = { sheetId: id };
+      var ss = openBook_(next);
+      var rs = sheet_(ss, SH_ROSTER, ROSTER_HEAD);
+      sheet_(ss, SH_LOG, LOG_HEAD);
+      var hs = sheet_(ss, SH_REST, REST_HEAD);
+      // 새 시트에 명단이 없으면 지금 명단과 쉬는 날을 옮겨 준다.
+      if (rs.getLastRow() <= 1) {
+        var roster = readRoster_(oldBook), rest = readRest_(oldBook), a = [], b = [];
+        for (var i = 0; i < roster.length; i++) a.push([roster[i].no, roster[i].name, roster[i].role, roster[i].icon, roster[i].target]);
+        for (var j = 0; j < rest.length; j++) b.push([rest[j].start, rest[j].end, rest[j].name]);
+        if (a.length) {
+          rs.getRange(2, 1, a.length, 1).setNumberFormat('@');
+          rs.getRange(2, 1, a.length, 5).setValues(a);
+          copied = true;
+        }
+        if (b.length && hs.getLastRow() <= 1) hs.getRange(2, 1, b.length, 3).setNumberFormat('@').setValues(b);
+      }
+      cls.sheetId = id;
+    }
+  }
+  putClass_(cls);
+  return { name: cls.name, sound: cls.sound, sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+}
+
+/** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */
+function deleteClass(code, pw) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  props_().deleteProperty('class_' + cls.code);
+  return true;
+}
