@@ -43,16 +43,21 @@ button{cursor:pointer}
 .cal .d{font-size:40px;line-height:1.05}
 .cal .w{font-size:15px;padding-bottom:3px}
 .cal.sun .d,.cal.sun .w{color:var(--red)}
-.title{margin:0 0 0 22px;font-weight:400;font-size:38px;line-height:1.15}
+.title{margin:0 0 0 22px;font-weight:400;font-size:38px;line-height:1.15;word-break:keep-all}
 .title em{font-style:normal;padding:0 6px;background:linear-gradient(transparent 52%,var(--yellow) 52%,var(--yellow) 92%,transparent 92%)}
 .grow{flex:1}
+.clock{margin-left:26px;font-size:36px;line-height:1;white-space:nowrap;padding:8px 14px 6px;background:var(--white);
+  border:2.5px solid var(--ink);border-radius:20px 16px 22px 15px / 16px 22px 15px 20px;box-shadow:3px 4px 0 rgba(43,42,40,.22);transform:rotate(1.5deg)}
+.clock small{font-size:.5em;margin-right:6px}
+.clock i{font-style:normal;animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
 .prog{display:flex;align-items:center;margin-right:16px}
 .prog .lab{font-size:17px;margin-right:8px}
 .bar{width:210px;height:26px;border:2.5px solid var(--ink);border-radius:13px 15px 12px 14px;background:var(--white);overflow:hidden}
 .bar i{display:block;height:100%;width:0;border-right:2.5px solid var(--ink);transition:width .5s;
   background:repeating-linear-gradient(-55deg,var(--green) 0,var(--green) 7px,#7cc373 7px,#7cc373 11px)}
 .bar i.zero{border-right:0}
-.prog .num{font-size:26px;margin-left:10px;min-width:74px}
+.prog .num{font-size:26px;margin-left:10px;min-width:74px;white-space:nowrap}
 .top .btn{margin-left:10px}
 .net{font-size:15px;padding:3px 10px;border-radius:12px;background:var(--ink);color:#fff;margin-right:8px;display:none}
 .net.show{display:inline-block}
@@ -90,8 +95,20 @@ button{cursor:pointer}
 .t4 .slot b,.t5 .slot b{font-size:.8em}
 .slot.on{border-color:transparent}
 .stamp{position:absolute;left:-6%;top:-6%;width:112%;height:112%;color:var(--red);opacity:.9}
-.stamp.new{animation:thump .38s cubic-bezier(.2,1.6,.5,1)}
-@keyframes thump{0%{transform:scale(2.6) rotate(-28deg);opacity:0}55%{opacity:1}100%{opacity:.9}}
+.stamp.new{animation:ink .28s .2s backwards}
+@keyframes ink{0%{transform:scale(1.3);opacity:0}100%{opacity:.9}}
+.presser{position:fixed;z-index:55;pointer-events:none;transform-origin:50% 100%;animation:press .62s forwards}
+.presser svg{display:block;width:100%;height:100%}
+@keyframes press{
+  0%{transform:translateY(-80%) rotate(-16deg);opacity:0;animation-timing-function:cubic-bezier(.6,0,.9,.4)}
+  14%{opacity:1}
+  32%{transform:translateY(0) rotate(0) scaleY(1)}
+  41%{transform:translateY(0) rotate(0) scaleY(.88)}
+  54%{transform:translateY(0) rotate(0) scaleY(1);opacity:1}
+  100%{transform:translateY(-75%) rotate(10deg);opacity:0}
+}
+.card.hit{animation:hit .3s}
+@keyframes hit{35%{margin-top:.8em;margin-bottom:.1em}70%{margin-top:.3em;margin-bottom:.6em}}
 .undo{
   position:absolute;right:.4em;top:.4em;font-size:.72em;padding:.2em .55em;background:var(--white);
   border:.14em solid var(--ink);border-radius:1em;display:none;
@@ -124,6 +141,7 @@ button{cursor:pointer}
 table.st{width:100%;border-collapse:collapse;background:var(--white);border:2.5px solid var(--ink);font-size:22px}
 table.st th{font-weight:400;background:#cbe4f6;border-bottom:2.5px solid var(--ink);padding:8px 4px}
 table.st th.rest{color:var(--red)}
+table.st th,table.st td{white-space:nowrap}
 table.st td{padding:5px 4px;text-align:center;border-bottom:1.5px dashed rgba(43,42,40,.3)}
 table.st td.nm{text-align:left;padding-left:14px;white-space:nowrap}
 table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8px;opacity:.75}
@@ -167,9 +185,40 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 .emo{display:flex;flex-wrap:wrap}
 .emo button{width:54px;height:54px;font-size:28px;border:0;background:none}
 
+@media (max-width:1100px){
+  .title{font-size:30px;margin-left:16px}.clock{font-size:28px;margin-left:16px}
+  .prog .lab{display:none}.bar{width:130px}.prog .num{font-size:22px;min-width:62px}
+}
 @media (max-width:900px){
-  .title{font-size:26px;margin-left:12px}.prog .lab,.bar{display:none}.top{flex-wrap:wrap}
-  .row{flex-wrap:wrap}.row .w-role{flex:1 1 100%;margin-top:6px}
+  .top{flex-wrap:wrap;padding:10px 12px 2px}
+  .cal{width:70px}.cal .m{font-size:14px}.cal .d{font-size:30px}.cal .w{font-size:12px}
+  .title{font-size:25px;margin-left:14px}
+  .clock{font-size:23px;margin-left:12px;padding:6px 10px 4px}
+  .prog{order:9;width:100%;margin:12px 0 0}.prog .lab{display:inline}.bar{flex:1;width:auto}
+  .btn{font-size:17px;padding:8px 12px}.btn.small{font-size:15px;padding:6px 10px}
+  .center h2{font-size:34px}.center p{font-size:21px}
+  .tags .btn{font-size:22px;padding:12px 20px;margin:7px}
+  .banner{font-size:34px;padding:12px 24px}
+  .wrap{padding:6px 10px 24px;overflow-x:auto}
+  table.st{font-size:17px}table.st td.nm small{display:none}
+  .dot{width:28px;height:28px;line-height:24px;font-size:16px}.dot.absent{font-size:11px}
+  .row{flex-wrap:wrap}.row .w-role{flex:1 1 100%;order:5;margin-top:6px}.rowhead{display:none}
+  .row .w-date{width:150px}
+  .sheet{padding:14px}.field .line{flex-wrap:wrap}.field .line .in{flex:1 1 100%;margin:0 0 8px}
+}
+@media (max-width:520px){
+  .cal{width:56px;border-width:2px}.cal .m{font-size:12px}.cal .d{font-size:24px}.cal .w{font-size:11px}
+  .title{font-size:20px;margin-left:10px;flex:1 1 0;min-width:0}
+  .title em{display:inline-block}
+  .grow{display:none}
+  .clock{font-size:19px;margin:0}
+  .top .btn{margin:10px 8px 0 0}
+  .prog{margin-top:10px}
+  .banner{font-size:25px;white-space:normal;width:86%;text-align:center}
+  .center h2{font-size:28px}.center p{font-size:19px}
+  table.st{font-size:15px}table.st td.nm{padding-left:8px}
+  .row .w-name{flex:1;width:auto}
+  .emo button{width:46px;height:46px;font-size:24px}
 }
 </style>
 </head>
@@ -296,6 +345,21 @@ function stampSvg(i, k, fresh){
     '<text x="50" y="87" font-size="9" fill="currentColor" text-anchor="middle">★ ★ ★</text></svg>';
 }
 
+/* 도장 손잡이가 내려와 꾹 찍고 올라가는 모션 */
+function press(r){
+  var w = Math.max(46, r.width * 1.12), h = w * 1.45;
+  var d = document.createElement('div'); d.className = 'presser';
+  d.style.cssText = 'left:' + (r.left + r.width / 2 - w / 2) + 'px;top:' + (r.top + r.height * .86 - h) + 'px;width:' + w + 'px;height:' + h + 'px';
+  d.innerHTML = '<svg viewBox="0 0 100 145"><g stroke="#2b2a28" stroke-width="4" stroke-linejoin="round">' +
+    '<rect x="39" y="40" width="22" height="46" fill="#c98a4b"/>' +
+    '<circle cx="50" cy="27" r="23" fill="#e0a25e"/>' +
+    '<path d="M14 82 h72 a8 8 0 0 1 8 8 v26 h-88 v-26 a8 8 0 0 1 8 -8 z" fill="#c98a4b"/>' +
+    '<rect x="4" y="116" width="92" height="20" rx="4" fill="#d8362b"/></g>' +
+    '<path d="M36 18 q8 -9 18 -5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/></svg>';
+  document.body.appendChild(d);
+  setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 680);
+}
+
 /* ---------- 처음 화면: 학급 고르기 ---------- */
 function showPick(){
   S.view = 'pick'; S.code = ''; S.st = null;
@@ -348,8 +412,17 @@ function counts(){
 function topHtml(right){
   var st = S.st, p = st.today.split('-');
   return '<div class="top"><div class="cal' + (st.dow === 0 || st.dow === 6 ? ' sun' : '') + '"><div class="m">' + (+p[1]) + '월</div><div class="d">' + (+p[2]) +
-    '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="grow"></div>' + right + '</div>';
+    '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="clock" id="clock">' + clockHtml() + '</div><div class="grow"></div>' + right + '</div>';
 }
+function clockHtml(){
+  var d = new Date(), h = d.getHours(), m = d.getMinutes();
+  return '<small>' + (h < 12 ? '오전' : '오후') + '</small>' + (h % 12 || 12) + '<i>:</i>' + (m < 10 ? '0' : '') + m;
+}
+var clockMin = -1;
+setInterval(function(){
+  var c = document.getElementById('clock'), m = new Date().getMinutes();
+  if (c && m !== clockMin) { clockMin = m; c.innerHTML = clockHtml(); }
+}, 1000);
 function cardHtml(s, i){
   var tilt = (((i * 37) % 7) - 3) * .45;
   var cls = 'card c' + (i % 6) + ' t' + s.target + (s.absent ? ' absent' : '') + (s.done > 0 && !s.absent ? ' some' : '');
@@ -403,7 +476,7 @@ function fit(){
     if (rows * fs * 10.1 <= H) { best = fs; break; }
     best = fs;
   }
-  g.style.fontSize = Math.max(11, best) + 'px';
+  g.style.fontSize = Math.max(Math.min(13, W / 2 / 12.9), best) + 'px';
 }
 function redrawCard(i, fresh){
   var s = S.st.students[i], el = document.getElementById('card-' + i); if (!el) return;
@@ -422,16 +495,21 @@ function stamp(i){
   }
   s.done++;
   var nu = redrawCard(i, s.done - 1), r = nu.getBoundingClientRect();
-  sndStamp();
-  burst(r.left + r.width / 2, r.top + r.height * .7, 14);
+  var sr = nu.querySelectorAll('.slot')[s.done - 1].getBoundingClientRect();
+  press(sr);
+  setTimeout(function(){
+    sndStamp();
+    burst(sr.left + sr.width / 2, sr.top + sr.height / 2, 14);
+    var el2 = document.getElementById('card-' + i);
+    if (el2) { el2.className += ' hit'; setTimeout(function(){ el2.className = el2.className.replace(' hit', ''); }, 320); }
+  }, 200);
   push(s.no, 1);
   var c = counts(); prog(c);
   if (s.done >= s.target) {
-    setTimeout(sndDone, 120);
-    burst(r.left + r.width / 2, r.top + r.height / 2, 50);
+    setTimeout(function(){ sndDone(); burst(r.left + r.width / 2, r.top + r.height / 2, 50); }, 330);
     var k = streakNow(s);
     if (c.n && c.d === c.n) {
-      setTimeout(function(){ sndAll(); burst(0, 0, 260, true); banner('우리 반 모두 해냈어요!', 3600); }, 500);
+      setTimeout(function(){ sndAll(); burst(0, 0, 260, true); banner('우리 반 모두 해냈어요!', 3600); }, 750);
     } else if (k >= 3 && k % 5 === 0) {
       banner(s.name + ' ' + k + '일 연속!', 2200);
     }
