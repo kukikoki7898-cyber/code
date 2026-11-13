@@ -621,7 +621,9 @@ function renderSettings(){
   } else {
     var ad = S.admin;
     h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요. 새 시트는 공유를 "링크가 있는 모든 사용자 · 편집자"로 해 주세요.</p>' +
-      '<div class="field"><div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div></div>' +
+      '<div class="field"><div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>' +
+      '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
+      '<p class="note" style="margin:8px 0 0">새 파일은 이 앱을 배포한 선생님의 구글 드라이브에 만들어져요.</p></div>' +
       '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
@@ -686,6 +688,17 @@ function act(a, el){
     case 'addrest': S.rest.push({ start: S.st.today, end: S.st.today, name: '' }); render(); break;
     case 'delrest': S.rest.splice(i, 1); render(); break;
     case 'saverest': adminCall('saveRest', [S.rest], function(st){ setState(st); render(); toast('저장했어요.'); }); break;
+    case 'newsheet':
+      modal('<h3>새 스프레드시트를 만들까요?</h3><p class="hand" style="font-size:19px">새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.</p>' +
+        '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="newsheet2">만들기</button></div>');
+      break;
+    case 'newsheet2':
+      el.disabled = true;
+      adminCall('updateClass', [{ newSheet: true }], function(r){
+        closeModal(); toast('새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
+        api('auth', [S.code, S.pw], function(ad){ S.admin = ad; setState(ad.state); S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest)); render(); });
+      });
+      break;
     case 'savesheet':
       if (!val('s-url')) { toast('새 주소를 붙여 넣어 주세요.'); break; }
       adminCall('updateClass', [{ sheetUrl: val('s-url') }], function(r){

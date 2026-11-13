@@ -643,8 +643,12 @@ function updateClass(code, pw, change) {
     cls.pw = hash_(cls.code, String(change.newPw));
   }
   var copied = false;
-  if (change.sheetUrl !== undefined) {
-    var id = parseSheetId_(change.sheetUrl);
+  var made = !!change.newSheet;
+  if (made || change.sheetUrl !== undefined) {
+    // newSheet 이면 배포한 선생님의 드라이브에 새 파일을 만들어 그쪽으로 옮긴다.
+    var id = made
+      ? SpreadsheetApp.create('1인 1역 기록 - ' + cls.name + ' (' + today_() + ')').getId()
+      : parseSheetId_(change.sheetUrl);
     if (id !== cls.sheetId) {
       var oldBook = openBook_(cls);
       var next = { sheetId: id };
@@ -668,11 +672,15 @@ function updateClass(code, pw, change) {
     }
   }
   putClass_(cls);
-  if (change.name !== undefined || change.sheetUrl !== undefined) {
+  if (change.name !== undefined || change.sheetUrl !== undefined || made) {
     safe_(function () {
       var book = openBook_(cls);
       tidy_(book);
       writeSummary_(cls, book, buildState_(cls, book), true);
+      if (made) {
+        var all = book.getSheets(), keep = [SH_SUM, SH_LOG, SH_ROSTER, SH_REST];
+        for (var k = 0; k < all.length; k++) if (keep.indexOf(all[k].getName()) < 0) book.deleteSheet(all[k]);
+      }
     });
   }
   return { name: cls.name, sound: cls.sound, sheetUrl: sheetUrl_(cls.sheetId), copied: copied };

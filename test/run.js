@@ -147,6 +147,21 @@ var assert = require('assert');
   });
   assert.equal(many.cols, 34); assert.ok(many.max >= 34);
 
+  // 설정에서 새 스프레드시트 만들기: 명단이 따라가고 예전 시트는 그대로
+  var before = await pg.evaluate(function (id) { return JSON.stringify(window.__books[id].sheets['기록'].d); }, id2);
+  await pg.click('[data-act=settings]'); await pg.fill('#pw', '1234'); await pg.click('[data-act=login]');
+  await pg.waitForSelector('.tabs');
+  await pg.click('[data-act=tab][data-tab=class]');
+  await pg.click('[data-act=newsheet]'); await pg.click('[data-act=newsheet2]');
+  await pg.waitForTimeout(700);
+  var made = await pg.evaluate(function (id) {
+    var ids = Object.keys(window.__books), b = window.__books[ids[ids.length - 1]];
+    return { order: b.order, roster: b.sheets['명단'].d.length, sum: b.sheets['요약'].d[4][0], old: JSON.stringify(window.__books[id].sheets['기록'].d) };
+  }, id2);
+  assert.deepEqual(made.order, ['요약', '명단', '기록', '쉬는날']);
+  assert.equal(made.roster, 25); assert.equal(made.sum, '24명'); assert.equal(made.old, before);
+  await pg.click('[data-act=board]');
+
   // 학급 고르기 화면 + 새 학급
   await pg.goto(file + '?pick');
   await pg.waitForSelector('.tags .btn');
