@@ -119,6 +119,34 @@ var assert = require('assert');
   var bad = await pg.evaluate(function () { try { updateClass(window.__SEED_CODE, '1234', { sheetUrl: 'https://docs.google.com/spreadsheets/d/XXXXXXXXXXXXXXXXXXXXXXXXXXXX/edit' }); return 'ok'; } catch (e) { return e.message; } });
   assert.ok(/열 수 없어요/.test(bad));
 
+  // 요약 시트: 맨 앞에 있고, 도장을 찍으면 값이 바뀐다
+  var sum = await pg.evaluate(function (id) { var b = window.__books[id]; return { order: b.order, d: b.sheets['요약'].d }; }, id2);
+  assert.deepEqual(sum.order, ['요약', '시트1', '명단', '기록', '쉬는날']);
+  assert.ok(/2학년 3반 1인 1역 요약/.test(sum.d[0][0]));
+  assert.equal(sum.d[4][0], '24명');
+  assert.equal(sum.d[4][2], '0 / 24명');
+  assert.equal(sum.d[6][1], '이름');
+  assert.equal(sum.d[7][1], '강다은'); assert.equal(sum.d[7][4], '1 / 3'); assert.equal(sum.d[7][8], '△');
+  var first = await pg.evaluate(function () {
+    var b = window.__books[Object.keys(window.__books)[0]];
+    return { order: b.order, d: b.sheets['요약'].d, log: b.sheets['기록'].d.slice(1, 4).map(function (r) { return r[1]; }) };
+  });
+  assert.deepEqual(first.order, ['요약', '기록', '명단', '쉬는날']);
+  assert.deepEqual(first.log, ['강다은', '김도윤', '김서아']);
+  assert.equal(first.d[4][12], '9일');
+  var kim = first.d.filter(function (r) { return r[1] === '김도윤'; })[0];
+  assert.equal(kim[4], '완료'); assert.equal(kim[8], '★'); assert.equal(kim[10], '3일'); assert.equal(kim[11], '8 / 9일'); assert.equal(kim[14], 8);
+  // 날짜 열이 26칸을 넘어가도 계속 기록된다
+  var many = await pg.evaluate(function () {
+    var code = createClass('열 늘리기', '', '1234').code;
+    saveRoster(code, '1234', [{ no: '1', name: '가', role: '나', target: 1 }]);
+    for (var i = 0; i < 40; i++) { window.__TODAY = '2027-03-' + (i < 9 ? '0' : '') + (i + 1); if (i < 31) record(code, '1', 1, window.__TODAY); }
+    window.__TODAY = '2026-11-12';
+    var ids = Object.keys(window.__books), b = window.__books[ids[ids.length - 1]];
+    return { cols: b.sheets['기록'].d[0].length, max: b.sheets['기록'].maxC };
+  });
+  assert.equal(many.cols, 34); assert.ok(many.max >= 34);
+
   // 학급 고르기 화면 + 새 학급
   await pg.goto(file + '?pick');
   await pg.waitForSelector('.tags .btn');
