@@ -107,6 +107,11 @@ var assert = require('assert');
   assert.equal(await todayCell('1'), '○○○');
   assert.equal(await pg.textContent('#num'), '2 / 3');
 
+  // 오류 문구에 어느 단계였는지 나온다
+  await pg.evaluate(function () { window.__mock.failNext = 1; window.ONE_ROLE._test.stale(); });
+  var msg = await pg.evaluate(function () { return new Promise(function (r) { window.__RUN().withSuccessHandler(function () { r('ok'); }).withFailureHandler(function (e) { r(e.message); }).getState(Object.keys(JSON.parse(listClassesRaw()))[0]); }); function listClassesRaw() { var o = {}; listClasses().forEach(function (c) { o[c.code] = 1; }); return JSON.stringify(o); } });
+  assert.ok(/단계: 시트 구성 읽기/.test(msg), msg);
+
   // 8. 다른 기기에서 시트가 바뀌면 다시 읽어서 덮어쓰지 않는다
   await pg.evaluate(function (today) {
     var f = window.__mock.store.files; for (var id in f) f[id].sheets.forEach(function (s) {
