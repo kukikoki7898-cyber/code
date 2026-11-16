@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>우리 반 1인 1역 설치 안내서</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@page { size: A4; margin: 16mm 15mm; }
+body { font-family: 'Noto Sans KR', sans-serif; font-size: 10.5pt; line-height: 1.6; color: #222; margin: 0; }
+h1 { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 26pt; margin: 0 0 4px; }
+h1 em { font-style: normal; background: linear-gradient(transparent 55%, #f7cf3d 55%); padding: 0 4px; }
+h2 { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 15pt; margin: 22px 0 8px; padding: 5px 12px; background: #3d6fa5; color: #fff; border-radius: 6px; break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 14px 0 4px; break-after: avoid; }
+p { margin: 4px 0 8px; }
+.lead { font-size: 11.5pt; color: #444; }
+ol, ul { margin: 4px 0 10px; padding-left: 22px; }
+li { margin-bottom: 4px; }
+b.ui { background: #eef2f7; border: 1px solid #c9d3de; border-radius: 4px; padding: 0 5px; font-weight: 700; white-space: nowrap; }
+code { font-family: Consolas, monospace; background: #f3f0e6; padding: 0 4px; border-radius: 3px; font-size: 9.5pt; }
+.box { border: 1.5px solid #c9d3de; border-radius: 8px; padding: 8px 14px; margin: 10px 0; break-inside: avoid; }
+.box.tip { background: #fff9e0; border-color: #f0d566; }
+.box.warn { background: #fdeeee; border-color: #e7a6a1; }
+.step { break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; font-size: 9.8pt; break-inside: avoid; }
+th { background: #eaf2fb; text-align: left; }
+th, td { border: 1px solid #c9d3de; padding: 5px 8px; vertical-align: top; }
+.shots { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; }
+.shots img { border: 1px solid #c9d3de; border-radius: 6px; }
+.check li { list-style: '☐  '; }
+.page { break-before: page; }
+small { color: #666; }
+</style>
+</head>
+<body>
+
+<h1>우리 반 <em>1인 1역</em> 설치 안내서</h1>
+<p class="lead">전자칠판에 띄워 두면 학생이 자기 이름표를 눌러 도장을 찍고, 그 기록이 선생님의 구글 스프레드시트에 날짜별로 저장됩니다. 선생님 구글 계정에 직접 설치하며, 약 10분이 걸립니다.</p>
+
+<div class="shots">
+  <img src="../docs/board.png" style="width:72%">
+  <img src="../docs/phone.png" style="width:19%">
+</div>
+
+<h2>준비물</h2>
+<ul>
+  <li>구글 계정 (개인 계정도 됩니다)</li>
+  <li>설치할 때 쓸 PC와 크롬 브라우저</li>
+  <li>압축파일 안의 <b>2_붙여넣을 코드</b> 폴더 (<code>Code.txt</code>, <code>Index.txt</code>)</li>
+</ul>
+<div class="box tip">설치 전에 <b>3_체험판.html</b>을 열어 보면 어떤 앱인지 미리 눌러 볼 수 있습니다. 체험판에서 누른 내용은 저장되지 않습니다.</div>
+
+<h2>1단계 · 프로젝트 만들기</h2>
+<div class="step">
+<ol>
+  <li>크롬에서 <code>script.google.com</code> 에 들어가 구글 계정으로 로그인합니다.</li>
+  <li>왼쪽 위 <b class="ui">새 프로젝트</b>를 누릅니다.</li>
+  <li>맨 위 "제목 없는 프로젝트"를 눌러 이름을 <b>1인 1역</b>으로 바꿉니다.</li>
+</ol>
+</div>
+
+<h2>2단계 · 코드 붙여 넣기</h2>
+<div class="step">
+<h3>① Code.gs</h3>
+<ol>
+  <li>화면에 보이는 <code>function myFunction() { }</code> 내용을 모두 지웁니다. (Ctrl+A 후 Delete)</li>
+  <li><code>Code.txt</code>를 메모장으로 열어 전체 선택(Ctrl+A), 복사(Ctrl+C)합니다.</li>
+  <li>편집기에 붙여 넣습니다. (Ctrl+V)</li>
+</ol>
+<h3>② Index.html</h3>
+<ol>
+  <li>왼쪽 <b class="ui">파일</b> 옆의 <b class="ui">+</b> 를 누르고 <b class="ui">HTML</b>을 고릅니다.</li>
+  <li>이름 칸에 <b>Index</b> 라고 적고 Enter를 누릅니다. 왼쪽 목록에 <code>Index.html</code>이 생깁니다.</li>
+  <li>새 파일에 들어 있는 내용을 모두 지우고, <code>Index.txt</code> 내용을 전체 복사해 붙여 넣습니다.</li>
+  <li>위쪽 <b class="ui">저장</b>(디스켓 모양)을 누릅니다. (Ctrl+S)</li>
+</ol>
+<div class="box warn">두 파일을 서로 바꿔 넣지 않도록 주의하세요. <code>Code.txt</code>는 <code>Code.gs</code>에, <code>Index.txt</code>는 <code>Index.html</code>에 넣습니다.</div>
+</div>
+
+<h2>3단계 · 설치점검 실행 (권한 허용)</h2>
+<div class="step">
+<p>설치가 제대로 되었는지 실제 구글 시트로 확인하는 단계입니다. 이때 권한 허용도 함께 합니다.</p>
+<ol>
+  <li>왼쪽에서 <code>Code.gs</code>를 누릅니다.</li>
+  <li>위쪽 도구 줄의 함수 목록(<b class="ui">실행</b>·<b class="ui">디버그</b> 옆)에서 <b>설치점검</b>을 고릅니다. 목록 맨 아래에 있습니다.</li>
+  <li><b class="ui">실행</b>을 누릅니다.</li>
+  <li>"승인 필요" 창이 뜨면 <b class="ui">권한 검토</b> → 내 계정 선택 → <b class="ui">고급</b> → <b class="ui">1인 1역(으)로 이동(안전하지 않음)</b> → <b class="ui">허용</b>을 차례로 누릅니다.</li>
+  <li>아래 <b>실행 로그</b>에 점검 결과가 나옵니다. 20~40초쯤 걸립니다.</li>
+</ol>
+<div class="box tip"><b>"🎉 모든 점검을 통과했어요"</b> 가 보이면 성공입니다.<br>
+"확인되지 않은 앱" 경고는 선생님이 직접 만든 프로젝트라서 나오는 것으로, 정상입니다. 앱은 선생님의 스프레드시트를 만들고 읽고 쓰는 권한만 사용합니다.</div>
+<p><small>점검하면서 구글 드라이브에 "1인 1역 설치 점검용 (지워도 됩니다)" 파일이 하나 생깁니다. 지워도 됩니다.<br>❌ 표시가 있으면 로그 내용을 그대로 복사해 자료를 나눠 준 선생님께 문의하세요.</small></p>
+</div>
+
+<h2 class="page">4단계 · 배포하기</h2>
+<div class="step">
+<ol>
+  <li>오른쪽 위 <b class="ui">배포</b> → <b class="ui">새 배포</b>를 누릅니다.</li>
+  <li>"유형 선택" 옆 톱니바퀴를 눌러 <b class="ui">웹 앱</b>을 고릅니다.</li>
+  <li>아래처럼 맞춥니다.
+    <table>
+      <tr><th style="width:38%">항목</th><th>선택</th></tr>
+      <tr><td>다음 사용자 인증 정보로 실행</td><td><b>나</b></td></tr>
+      <tr><td>액세스 권한이 있는 사용자</td><td><b>모든 사용자</b></td></tr>
+    </table>
+  </li>
+  <li><b class="ui">배포</b>를 누릅니다.</li>
+  <li>나온 <b>웹 앱 URL</b>을 복사해 둡니다. <code>https://script.google.com/macros/s/…/exec</code> 모양입니다.</li>
+</ol>
+<div class="box">"모든 사용자"로 해야 전자칠판에서 로그인 없이 열립니다. 주소가 길고 복잡해서 주소를 모르는 사람은 들어올 수 없고, 설정은 비밀번호가 있어야 바꿀 수 있습니다.</div>
+</div>
+
+<h2>5단계 · 학급 만들기</h2>
+<div class="step">
+<ol>
+  <li>복사한 웹 앱 URL을 브라우저에서 엽니다.</li>
+  <li><b class="ui">+ 새 학급 만들기 (선생님)</b>을 누릅니다.</li>
+  <li><b>학급 이름</b>과 <b>설정 비밀번호</b>(4자 이상)를 적습니다. 스프레드시트 주소는 비워 둡니다.</li>
+  <li><b class="ui">만들기</b>를 누릅니다. 내 구글 드라이브에 "1인 1역 기록 - (학급 이름)" 파일이 만들어집니다.</li>
+  <li><b class="ui">설정</b> → 비밀번호 입력 → <b>친구와 역할</b>에서 <b class="ui">+ 친구 추가</b>로 번호, 이름, 역할, 하루 횟수를 넣고 <b class="ui">저장하기</b>를 누릅니다.</li>
+</ol>
+<div class="box tip">학생이 많으면 스프레드시트의 <b>명단</b> 시트에 번호, 이름, 역할, (그림), 하루 횟수를 직접 붙여 넣는 편이 빠릅니다. 붙여 넣은 뒤 앱을 새로 고치면 반영됩니다.</div>
+</div>
+
+<h2>6단계 · 전자칠판에 띄우기</h2>
+<div class="step">
+<ol>
+  <li><b class="ui">설정</b> → <b>시트 · 비밀번호</b> 아래쪽의 <b>우리 반 바로가기 주소</b>를 확인합니다.</li>
+  <li>전자칠판 브라우저에서 그 주소를 열고 즐겨찾기(홈 화면)에 추가합니다.</li>
+</ol>
+<p><small>주소가 길어서 직접 치기 어렵습니다. 메신저나 메일로 자신에게 보내 전자칠판에서 열거나, QR 코드로 만들어 찍으면 편합니다.</small></p>
+</div>
+
+<h2 class="page">설치 후 직접 확인하기</h2>
+<p>전자칠판에서 아래를 차례로 해 보세요. 모두 되면 교실에서 쓸 준비가 끝난 것입니다.</p>
+<ul class="check">
+  <li>이름표가 한 화면에 보이고 글씨가 깨지지 않는다.</li>
+  <li>이름표를 누르면 도장이 내려와 찍히고 소리가 난다.</li>
+  <li>스프레드시트 <b>기록</b> 시트의 오늘 날짜 칸에 ○ 가 생긴다. (1~3초 뒤)</li>
+  <li><b class="ui">지우기</b>를 누르면 도장이 사라지고 시트의 ○ 도 지워진다.</li>
+  <li>하루 여러 번 하는 역할은 횟수만큼 눌러야 "다 한 친구" 숫자가 오른다.</li>
+  <li><b class="ui">스티커판</b>에 오늘 요일 칸의 별이 보인다.</li>
+  <li>스프레드시트 맨 앞 <b>요약</b> 시트의 "오늘 다 한 친구" 숫자가 맞다.</li>
+  <li>브라우저를 닫았다가 다시 열어도 도장이 그대로 있다.</li>
+</ul>
+
+<h2>매일 쓰는 방법</h2>
+<table>
+  <tr><th style="width:26%">하고 싶은 일</th><th>방법</th></tr>
+  <tr><td>도장 찍기</td><td>학생이 자기 이름표를 누릅니다. 하루 횟수만큼 찍으면 완료입니다.</td></tr>
+  <tr><td>잘못 찍었을 때</td><td>이름표 오른쪽 위 <b class="ui">지우기</b>를 누르면 하나씩 지워집니다.</td></tr>
+  <tr><td>이번 주 기록 보기</td><td><b class="ui">스티커판</b>을 누릅니다. 요일별 스티커, 연속 일수, 이번 달 횟수가 보입니다.</td></tr>
+  <tr><td>결석한 학생</td><td><b class="ui">설정</b> → <b>오늘 결석</b>에서 이름을 누릅니다. 그날은 통계에서 빠집니다.</td></tr>
+  <tr><td>공휴일 · 방학</td><td><b class="ui">설정</b> → <b>쉬는 날</b>에 날짜를 넣습니다. 토·일요일은 자동으로 쉽니다.</td></tr>
+  <tr><td>역할 바꾸기</td><td><b class="ui">설정</b> → <b>친구와 역할</b>에서 고치고 <b class="ui">저장하기</b>를 누릅니다.</td></tr>
+  <tr><td>새 학기에 새로 시작</td><td><b class="ui">설정</b> → <b>시트 · 비밀번호</b> → <b class="ui">새 스프레드시트 만들어서 바꾸기</b>. 명단은 따라가고 지난 기록은 예전 파일에 남습니다.</td></tr>
+  <tr><td>소리 끄기</td><td><b class="ui">설정</b> → <b>시트 · 비밀번호</b> → <b>효과음</b>.</td></tr>
+</table>
+
+<h2>스프레드시트 구성</h2>
+<table>
+  <tr><th style="width:16%">시트</th><th>내용</th></tr>
+  <tr><td><b>요약</b></td><td>맨 앞 시트. 학생 수, 오늘 다 한 친구, 결석, 이번 주·이번 달 달성률과 학생별 통계. 도장을 찍을 때마다 자동으로 다시 쓰이므로 직접 고치지 않습니다.</td></tr>
+  <tr><td><b>기록</b></td><td>줄은 학생, 칸은 날짜. ○ 개수가 그날 찍은 도장 수입니다. 직접 고쳐도 됩니다.</td></tr>
+  <tr><td><b>명단</b></td><td>번호, 이름, 역할, 그림, 하루 횟수. 직접 고쳐도 됩니다.</td></tr>
+  <tr><td><b>쉬는날</b></td><td>시작, 끝, 이름.</td></tr>
+</table>
+<div class="box warn"><b>번호</b>는 학생을 구분하는 열쇠입니다. 학기 중에 번호를 바꾸면 그 학생의 기록 줄이 새로 생깁니다.</div>
+
+<h2>같은 학교 선생님과 함께 쓰기</h2>
+<p>한 분만 설치하고 웹 앱 URL을 나눠 주면, 다른 선생님은 <b class="ui">새 학급 만들기</b>만 하면 됩니다. 이때 스프레드시트는 설치한 선생님의 드라이브에 만들어지므로, 설치한 선생님이 그 파일을 해당 선생님께 공유해 주세요. 학급이 10개를 넘거나 학생 정보를 각자 관리하고 싶다면 선생님마다 따로 설치하는 것을 권합니다.</p>
+
+<h2>코드를 새 버전으로 바꿀 때</h2>
+<ol>
+  <li>편집기에서 <code>Code.gs</code>와 <code>Index.html</code> 내용을 새 코드로 통째로 바꾸고 저장합니다.</li>
+  <li><b class="ui">배포</b> → <b class="ui">배포 관리</b> → 연필 모양 <b class="ui">수정</b> → 버전을 <b class="ui">새 버전</b>으로 → <b class="ui">배포</b>.</li>
+</ol>
+<p><small>"새 배포"를 누르면 주소가 바뀝니다. 반드시 "배포 관리 → 수정"으로 해 주세요. 주소와 기록은 그대로 유지됩니다.</small></p>
+
+<h2>문제가 생겼을 때</h2>
+<table>
+  <tr><th style="width:36%">증상</th><th>해결</th></tr>
+  <tr><td>"Index(이)라는 이름의 HTML 파일을 찾을 수 없습니다"</td><td>왼쪽 파일 목록에 <code>Index.html</code>이 있는지 확인합니다. 있다면 파일을 추가하기 전에 배포한 것이므로 <b>배포 관리 → 수정 → 새 버전</b>으로 다시 배포합니다.</td></tr>
+  <tr><td><code>SyntaxError: Unexpected token '&lt;'</code></td><td><code>Index.txt</code> 내용을 <code>Code.gs</code>에 붙여 넣은 경우입니다. 2단계를 다시 합니다.</td></tr>
+  <tr><td>"스크립트 함수를 찾을 수 없음: doGet"</td><td><code>Code.gs</code>가 저장되지 않았거나 일부만 들어갔습니다. 전체를 다시 붙여 넣고 저장한 뒤 새 버전으로 배포합니다.</td></tr>
+  <tr><td>웹 앱 주소에서 "페이지를 찾을 수 없습니다", "파일을 열 수 없습니다"</td><td>브라우저에 구글 계정이 여러 개 로그인되어 있을 때 생깁니다. 시크릿 창에서 열어 보세요.</td></tr>
+  <tr><td>코드를 고쳤는데 화면이 그대로다</td><td>새 버전으로 배포하지 않은 경우입니다. 위 "코드를 새 버전으로 바꿀 때"를 따라 합니다.</td></tr>
+  <tr><td>화면 위에 "인터넷 확인! 다시 저장하는 중"</td><td>인터넷이 끊긴 상태입니다. 도장은 화면에 남아 있고, 연결되면 자동으로 저장됩니다. 그 전에 브라우저를 닫으면 저장되지 않습니다.</td></tr>
+  <tr><td>"스프레드시트를 열 수 없어요"</td><td>연결된 스프레드시트가 삭제되었거나 다른 계정의 파일입니다. <b>설정 → 시트 · 비밀번호 → 새 스프레드시트 만들어서 바꾸기</b>를 누릅니다.</td></tr>
+  <tr><td>소리가 나지 않는다</td><td>전자칠판 음량과 설정의 효과음을 확인합니다. 브라우저는 화면을 한 번 누른 뒤부터 소리를 냅니다.</td></tr>
+  <tr><td>설정 비밀번호를 잊었다</td><td>편집기 왼쪽 <b>프로젝트 설정(톱니바퀴)</b> → <b>스크립트 속성</b>에서 해당 학급(<code>class_…</code>) 항목을 지우고, 앱에서 같은 스프레드시트 주소로 학급을 다시 만듭니다. 기록은 그대로 남습니다.</td></tr>
+  <tr><td>화면 맨 위의 회색 띠</td><td>구글이 붙이는 안내("이 애플리케이션은 Google이 아닌 다른 사용자가 만들었습니다")로, 없앨 수 없습니다.</td></tr>
+</table>
+
+<h2>개인정보와 보안</h2>
+<ul>
+  <li>학생 이름과 기록은 <b>설치한 선생님의 구글 드라이브</b>에만 저장됩니다. 만든 사람이나 다른 곳으로 보내지지 않습니다.</li>
+  <li>웹 앱 주소를 아는 사람은 이름표 화면을 볼 수 있고 도장을 찍을 수 있습니다. 주소를 공개된 곳에 올리지 마세요.</li>
+  <li>명단, 결석, 시트 변경은 설정 비밀번호가 있어야 할 수 있습니다.</li>
+  <li>실명 표시가 부담스러우면 이름 칸에 번호나 별명을 넣어도 됩니다.</li>
+  <li>더 이상 쓰지 않으면 <b>배포 관리 → 보관처리</b>로 주소를 닫을 수 있습니다.</li>
+</ul>
+
+</body>
+</html>

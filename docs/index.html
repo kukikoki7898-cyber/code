@@ -1,0 +1,2173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 반 1인 1역</title>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2b2a28; --paper:#f6ecd2; --white:#fffdf6;
+  --red:#d8362b; --orange:#f39a2b; --yellow:#f7cf3d; --green:#5fae57; --blue:#4a90c9; --pink:#ef8fa8;
+  --cut:14px 22px 16px 24px / 22px 14px 24px 16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:'Jua','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  color:var(--ink);background-color:var(--paper);
+  background-image:radial-gradient(rgba(120,90,40,.13) 1px,transparent 1.3px);background-size:22px 22px;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;overflow-x:hidden;
+}
+button,input{font-family:inherit;color:inherit}
+button{cursor:pointer}
+.hand{font-family:'Gaegu','Jua',sans-serif;font-weight:700}
+#fx{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:50}
+
+/* 종이 버튼 */
+.btn{
+  font-size:20px;padding:10px 18px;background:var(--white);border:2.5px solid var(--ink);
+  border-radius:var(--cut);box-shadow:3px 4px 0 rgba(43,42,40,.22);white-space:nowrap;
+}
+.btn:active{transform:translate(2px,3px);box-shadow:1px 1px 0 rgba(43,42,40,.22)}
+.btn.yellow{background:var(--yellow)} .btn.red{background:var(--red);color:#fff} .btn.green{background:#bfe3b4}
+.btn.small{font-size:16px;padding:6px 12px}
+.btn.plain{border-color:transparent;box-shadow:none;background:none;text-decoration:underline}
+
+/* 머리 부분 */
+.top{display:flex;align-items:center;padding:14px 20px 6px}
+.cal{
+  width:92px;flex:none;text-align:center;background:var(--white);border:2.5px solid var(--ink);
+  border-radius:8px 10px 12px 9px;box-shadow:3px 4px 0 rgba(43,42,40,.22);transform:rotate(-3deg);overflow:hidden;
+}
+.cal .m{background:var(--red);color:#fff;font-size:17px;padding:2px 0}
+.cal .d{font-size:40px;line-height:1.05}
+.cal .w{font-size:15px;padding-bottom:3px}
+.cal.sun .d,.cal.sun .w{color:var(--red)}
+.title{margin:0 0 0 22px;font-weight:400;font-size:38px;line-height:1.15;word-break:keep-all}
+.title em{font-style:normal;padding:0 6px;background:linear-gradient(transparent 52%,var(--yellow) 52%,var(--yellow) 92%,transparent 92%)}
+.grow{flex:1}
+.clock{margin-left:26px;font-size:36px;line-height:1;white-space:nowrap;padding:8px 14px 6px;background:var(--white);
+  border:2.5px solid var(--ink);border-radius:20px 16px 22px 15px / 16px 22px 15px 20px;box-shadow:3px 4px 0 rgba(43,42,40,.22);transform:rotate(1.5deg)}
+.clock small{font-size:.5em;margin-right:6px}
+.clock i{font-style:normal;animation:blink 2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.prog{display:flex;align-items:center;margin-right:16px}
+.prog .lab{font-size:17px;margin-right:8px}
+.bar{width:210px;height:26px;border:2.5px solid var(--ink);border-radius:13px 15px 12px 14px;background:var(--white);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-right:2.5px solid var(--ink);transition:width .5s;
+  background:repeating-linear-gradient(-55deg,var(--green) 0,var(--green) 7px,#7cc373 7px,#7cc373 11px)}
+.bar i.zero{border-right:0}
+.prog .num{font-size:26px;margin-left:10px;min-width:74px;white-space:nowrap}
+.top .btn{margin-left:10px}
+.net{font-size:15px;padding:3px 10px;border-radius:12px;background:var(--ink);color:#fff;margin-right:8px;display:none}
+.net.show{display:inline-block}
+.net.bad{background:var(--red)}
+
+/* 이름표 */
+.grid{display:flex;flex-wrap:wrap;justify-content:center;padding:8px 10px 14px;font-size:22px}
+.card{
+  position:relative;width:12em;height:9.2em;margin:.45em;padding:.6em .7em;
+  border:.12em solid var(--ink);border-radius:var(--cut);box-shadow:.2em .26em 0 rgba(43,42,40,.2);cursor:pointer;
+}
+.card:before{
+  content:'';position:absolute;top:-.55em;left:50%;width:3.4em;height:1.05em;margin-left:-1.7em;
+  background:rgba(255,246,190,.82);border-left:1px dashed rgba(43,42,40,.25);border-right:1px dashed rgba(43,42,40,.25);
+  transform:rotate(-2deg);
+}
+.c0{background:#ffd6cb}.c1{background:#ffe4b8}.c2{background:#fff0a3}.c3{background:#d3edc4}.c4{background:#cbe4f6}.c5{background:#f9cfde}
+.card:active{transform:scale(.97) !important}
+.no{
+  position:absolute;top:.5em;left:.55em;width:1.75em;height:1.75em;line-height:1.7em;text-align:center;font-size:.95em;
+  background:var(--white);border:.12em solid var(--ink);border-radius:50%;
+}
+.name{margin-left:1.25em;font-size:1.9em;line-height:1.12;white-space:nowrap;overflow:hidden}
+.name.long{font-size:1.45em;line-height:1.46}
+.role{margin-top:.1em;font-size:1.12em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.role i{font-style:normal;margin-right:.2em}
+.slots{position:absolute;left:0;right:0;bottom:.5em;display:flex;justify-content:center;align-items:center}
+.slot{
+  position:relative;width:3.7em;height:3.7em;margin:0 .12em;border:.12em dashed rgba(43,42,40,.4);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.slot b{font-weight:400;font-size:1.1em;color:rgba(43,42,40,.3)}
+.t2 .slot{width:3.6em;height:3.6em}.t3 .slot{width:3.2em;height:3.2em}
+.t4 .slot{width:2.5em;height:2.5em}.t5 .slot{width:2em;height:2em}
+.t4 .slot b,.t5 .slot b{font-size:.8em}
+.slot.on{border-color:transparent}
+.stamp{position:absolute;left:-6%;top:-6%;width:112%;height:112%;color:var(--red);opacity:.9}
+.stamp.new{animation:ink .28s .2s backwards}
+@keyframes ink{0%{transform:scale(1.3);opacity:0}100%{opacity:.9}}
+.presser{position:fixed;z-index:55;pointer-events:none;transform-origin:50% 100%;animation:press .62s forwards}
+.presser svg{display:block;width:100%;height:100%}
+@keyframes press{
+  0%{transform:translateY(-80%) rotate(-16deg);opacity:0;animation-timing-function:cubic-bezier(.6,0,.9,.4)}
+  14%{opacity:1}
+  32%{transform:translateY(0) rotate(0) scaleY(1)}
+  41%{transform:translateY(0) rotate(0) scaleY(.88)}
+  54%{transform:translateY(0) rotate(0) scaleY(1);opacity:1}
+  100%{transform:translateY(-75%) rotate(10deg);opacity:0}
+}
+.card.hit{animation:hit .3s}
+@keyframes hit{35%{margin-top:.8em;margin-bottom:.1em}70%{margin-top:.3em;margin-bottom:.6em}}
+.undo{
+  position:absolute;right:.4em;top:.4em;font-size:.72em;padding:.2em .55em;background:var(--white);
+  border:.14em solid var(--ink);border-radius:1em;display:none;
+}
+.card.some .undo{display:block}
+.streak{position:absolute;left:-.5em;top:-.75em;font-size:.72em;padding:.1em .45em;background:var(--yellow);
+  border:.14em solid var(--ink);border-radius:.4em;transform:rotate(-5deg);z-index:2}
+.card.absent{background:#e6e0d0;border-style:dashed;box-shadow:none;opacity:.75}
+.card.absent .slots{font-size:1.5em;color:rgba(43,42,40,.55)}
+.card.shake{animation:shake .35s}
+@keyframes shake{25%{margin-left:.2em}50%{margin-left:.7em}75%{margin-left:.3em}}
+
+/* 가운데 안내 */
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;padding:20px}
+.center h2{font-weight:400;font-size:54px;margin:0 0 8px}
+.center p{font-size:28px;margin:6px 0 22px}
+.tags{display:flex;flex-wrap:wrap;justify-content:center;max-width:900px;margin-bottom:18px}
+.tags .btn{font-size:30px;padding:16px 30px;margin:10px}
+.banner{
+  position:fixed;left:50%;top:38%;z-index:60;transform:translate(-50%,-50%) rotate(-3deg);pointer-events:none;
+  font-size:64px;padding:18px 44px;background:var(--yellow);border:5px solid var(--ink);border-radius:var(--cut);
+  box-shadow:8px 10px 0 rgba(43,42,40,.25);white-space:nowrap;animation:pop .5s cubic-bezier(.2,1.6,.5,1);
+}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(.2) rotate(-20deg)}}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:70;font-size:20px;padding:10px 22px;
+  background:var(--ink);color:#fff;border-radius:12px;max-width:90%}
+
+/* 스티커판 */
+.wrap{max-width:1100px;margin:0 auto;padding:6px 20px 30px}
+table.st{width:100%;border-collapse:collapse;background:var(--white);border:2.5px solid var(--ink);font-size:22px}
+table.st th{font-weight:400;background:#cbe4f6;border-bottom:2.5px solid var(--ink);padding:8px 4px}
+table.st th.rest{color:var(--red)}
+table.st th,table.st td{white-space:nowrap}
+table.st td{padding:5px 4px;text-align:center;border-bottom:1.5px dashed rgba(43,42,40,.3)}
+table.st td.nm{text-align:left;padding-left:14px;white-space:nowrap}
+table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8px;opacity:.75}
+.dot{display:inline-block;width:38px;height:38px;line-height:34px;border-radius:50%;font-size:22px;border:2px dashed rgba(43,42,40,.25);color:rgba(43,42,40,.45)}
+.dot.full{border:2.5px solid var(--ink);color:#fff;transform:rotate(-8deg)}
+.dot.part{border:2.5px solid var(--ink);background:var(--white);color:var(--ink)}
+.dot.future,.dot.rest{border-color:transparent}
+.dot.absent{border-color:transparent;font-size:15px}
+.legend{font-size:17px;margin:10px 2px}
+.legend .dot{width:26px;height:26px;line-height:22px;font-size:15px;vertical-align:middle;margin:0 4px 0 14px}
+
+/* 설정 */
+.tabs{display:flex;flex-wrap:wrap;margin:0 0 14px}
+.tabs .btn{margin:0 8px 8px 0}
+.tabs .btn.on{background:var(--ink);color:#fff}
+.sheet{background:var(--white);border:2.5px solid var(--ink);border-radius:var(--cut);padding:18px;box-shadow:4px 5px 0 rgba(43,42,40,.18)}
+.sheet h3{font-weight:400;font-size:24px;margin:0 0 4px}
+.sheet p.note{font-family:'Gaegu',sans-serif;font-size:19px;margin:2px 0 12px;line-height:1.35}
+.in{font-size:20px;padding:8px 10px;border:2px solid var(--ink);border-radius:8px;background:#fff;min-width:0;-webkit-user-select:text;user-select:text}
+.row{display:flex;align-items:center;margin-bottom:8px}
+.row>*{margin-right:8px}
+.row .w-no{width:66px;text-align:center}.row .w-name{width:150px}.row .w-role{flex:1}.row .w-date{width:190px}
+.row .ico{width:52px;height:46px;font-size:24px;padding:0;background:#fff;border:2px solid var(--ink);border-radius:8px}
+.row .cnt{width:74px}
+.rowhead{font-size:16px;opacity:.7}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:18px;margin-bottom:4px}
+.field .in{width:100%}
+.field .line{display:flex}.field .line .in{flex:1;margin-right:8px}
+.chips{display:flex;flex-wrap:wrap}
+.chips .btn{margin:0 8px 8px 0}
+.chips .btn.on{background:#e6e0d0;border-style:dashed;text-decoration:line-through}
+.url{font-family:monospace;font-size:15px;word-break:break-all;background:#f3eedd;padding:8px;border-radius:6px;-webkit-user-select:all;user-select:all}
+
+/* 모달 */
+.shade{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(43,42,40,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--white);border:3px solid var(--ink);border-radius:var(--cut);padding:22px;width:460px;max-width:100%;max-height:92vh;overflow:auto;box-shadow:6px 8px 0 rgba(43,42,40,.3)}
+.modal h3{font-weight:400;font-size:26px;margin:0 0 12px}
+.modal .btns{display:flex;justify-content:flex-end;margin-top:14px}
+.modal .btns .btn{margin-left:8px}
+.emo{display:flex;flex-wrap:wrap}
+.emo button{width:54px;height:54px;font-size:28px;border:0;background:none}
+
+@media (max-width:1100px){
+  .title{font-size:30px;margin-left:16px}.clock{font-size:28px;margin-left:16px}
+  .prog .lab{display:none}.bar{width:130px}.prog .num{font-size:22px;min-width:62px}
+}
+@media (max-width:900px){
+  .top{flex-wrap:wrap;padding:10px 12px 2px}
+  .cal{width:70px}.cal .m{font-size:14px}.cal .d{font-size:30px}.cal .w{font-size:12px}
+  .title{font-size:25px;margin-left:14px}
+  .clock{font-size:23px;margin-left:12px;padding:6px 10px 4px}
+  .prog{order:9;width:100%;margin:12px 0 0}.prog .lab{display:inline}.bar{flex:1;width:auto}
+  .btn{font-size:17px;padding:8px 12px}.btn.small{font-size:15px;padding:6px 10px}
+  .center h2{font-size:34px}.center p{font-size:21px}
+  .tags .btn{font-size:22px;padding:12px 20px;margin:7px}
+  .banner{font-size:34px;padding:12px 24px}
+  .wrap{padding:6px 10px 24px;overflow-x:auto}
+  table.st{font-size:17px}table.st td.nm small{display:none}
+  .dot{width:28px;height:28px;line-height:24px;font-size:16px}.dot.absent{font-size:11px}
+  .row{flex-wrap:wrap}.row .w-role{flex:1 1 100%;order:5;margin-top:6px}.rowhead{display:none}
+  .row .w-date{width:150px}
+  .sheet{padding:14px}.field .line{flex-wrap:wrap}.field .line .in{flex:1 1 100%;margin:0 0 8px}
+}
+@media (max-width:520px){
+  .cal{width:56px;border-width:2px}.cal .m{font-size:12px}.cal .d{font-size:24px}.cal .w{font-size:11px}
+  .title{font-size:20px;margin-left:10px;flex:1 1 0;min-width:0}
+  .title em{display:inline-block}
+  .grow{display:none}
+  .clock{font-size:19px;margin:0}
+  .top .btn{margin:10px 8px 0 0}
+  .prog{margin-top:10px}
+  .banner{font-size:25px;white-space:normal;width:86%;text-align:center}
+  .center h2{font-size:28px}.center p{font-size:19px}
+  table.st{font-size:15px}table.st td.nm{padding-left:8px}
+  .row .w-name{flex:1;width:auto}
+  .emo button{width:46px;height:46px;font-size:24px}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><path id="arcTop" d="M 19 52 A 31 31 0 0 1 81 52"/></defs></svg>
+<div id="app"></div>
+<canvas id="fx"></canvas>
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/**
+ * 우리 반 1인 1역 — Google Apps Script 서버 코드
+ *
+ * 시트 구성 (학급마다 스프레드시트 1개)
+ *   요약   : 맨 앞 시트. 학급 전체 현황과 학생별 통계 (자동으로 다시 쓰임)
+ *   명단   : 번호 | 이름 | 역할 | 그림 | 하루 횟수
+ *   기록   : 번호 | 이름 | 역할 | 2026-03-02 | 2026-03-03 | ...   (칸 값: ○, ○○, 결석)
+ *   쉬는날 : 시작 | 끝 | 이름
+ *
+ * 학급 목록(이름, 시트 ID, 비밀번호 해시)은 스크립트 속성에 저장한다.
+ */
+
+var TZ = 'Asia/Seoul';
+var SH_ROSTER = '명단';
+var SH_LOG = '기록';
+var SH_REST = '쉬는날';
+var SH_SUM = '요약';
+var SUM_HEAD = ['번호', '이름', '역할', '하루 횟수', '오늘', '월', '화', '수', '목', '금', '이번 주', '이번 달', '전체 달성률', '연속', '모은 스티커'];
+var SUM_COLS = 15;
+var SUM_TOP = 7;
+var WEEK_KO = ['일', '월', '화', '수', '목', '금', '토'];
+var C_HEAD = '#3d6fa5';
+var C_SOFT = '#eaf2fb';
+var C_LINE = '#c9d3de';
+var ROSTER_HEAD = ['번호', '이름', '역할', '그림', '하루 횟수'];
+var LOG_HEAD = ['번호', '이름', '역할'];
+var REST_HEAD = ['시작', '끝', '이름'];
+var MARK = '○';
+var ABSENT = '결석';
+var MAX_TARGET = 5;
+// 참이면 꾸미기 오류도 숨기지 않고 알려 준다. (설치 점검과 자동 검사에서만 켠다)
+var STRICT_ = typeof __STRICT_STYLE !== 'undefined';
+
+function doGet(e) {
+  var c = String((e && e.parameter && e.parameter.c) || '').replace(/[^a-z0-9]/g, '');
+  // HTML 파일 이름을 조금 다르게 만들었어도 찾아 준다.
+  var names = ['Index', 'index', 'Index.html', 'index.html', 'INDEX'], t = null;
+  for (var i = 0; i < names.length && !t; i++) {
+    try { t = HtmlService.createTemplateFromFile(names[i]); } catch (err) { t = null; }
+  }
+  if (!t) {
+    return HtmlService.createHtmlOutput('<p style="font:20px sans-serif;padding:30px">HTML 파일을 찾을 수 없어요.<br>' +
+      'Apps Script 편집기 왼쪽 파일 목록에 <b>Index.html</b> 파일이 있는지 확인하고, 저장한 뒤 새 버전으로 다시 배포해 주세요.</p>');
+  }
+  t.boot = JSON.stringify({ c: c, url: ScriptApp.getService().getUrl() || '' });
+  return t.evaluate()
+    .setTitle('우리 반 1인 1역')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+/* ---------- 작은 도우미 ---------- */
+
+function str_(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/^\s+|\s+$/g, '');
+}
+
+function clamp_(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function today_() {
+  return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
+}
+
+function ms_(d) {
+  var p = d.split('-');
+  return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+}
+
+function dow_(d) {
+  return new Date(ms_(d)).getUTCDay();
+}
+
+function addDays_(d, n) {
+  return new Date(ms_(d) + n * 86400000).toISOString().slice(0, 10);
+}
+
+/** 시트 칸 값을 yyyy-MM-dd 문자열로. 날짜가 아니면 ''. */
+function normDate_(v, tz) {
+  if (v instanceof Date) return Utilities.formatDate(v, tz || TZ, 'yyyy-MM-dd');
+  var s = str_(v);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+}
+
+function marks_(n) {
+  var s = '';
+  for (var i = 0; i < n; i++) s += MARK;
+  return s;
+}
+
+function parseCell_(v) {
+  var s = str_(v);
+  if (s === ABSENT) return { count: 0, absent: true };
+  var n = 0;
+  for (var i = 0; i < s.length; i++) if (s.charAt(i) === MARK) n++;
+  if (!n && /^\d+$/.test(s)) n = parseInt(s, 10);
+  return { count: n, absent: false };
+}
+
+/* ---------- 학급 목록 (스크립트 속성) ---------- */
+
+function props_() {
+  return PropertiesService.getScriptProperties();
+}
+
+function getClass_(code) {
+  code = String(code || '').replace(/[^a-z0-9]/g, '');
+  var raw = code ? props_().getProperty('class_' + code) : null;
+  if (!raw) throw new Error('학급을 찾을 수 없어요.');
+  var c = JSON.parse(raw);
+  c.code = code;
+  return c;
+}
+
+function putClass_(c) {
+  props_().setProperty('class_' + c.code, JSON.stringify({
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false
+  }));
+}
+
+function hash_(salt, pw) {
+  var b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8);
+  var s = '';
+  for (var i = 0; i < b.length; i++) {
+    var v = (b[i] + 256) % 256;
+    s += (v < 16 ? '0' : '') + v.toString(16);
+  }
+  return s;
+}
+
+function checkPw_(cls, pw) {
+  if (hash_(cls.code, String(pw || '')) !== cls.pw) {
+    Utilities.sleep(500);
+    throw new Error('비밀번호가 맞지 않아요.');
+  }
+}
+
+function parseSheetId_(url) {
+  var s = str_(url);
+  var m = s.match(/\/d\/([a-zA-Z0-9_-]{20,})/);
+  if (m) return m[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(s)) return s;
+  throw new Error('스프레드시트 주소가 올바르지 않아요. 주소창의 주소를 그대로 붙여 넣어 주세요.');
+}
+
+function sheetUrl_(id) {
+  return 'https://docs.google.com/spreadsheets/d/' + id + '/edit';
+}
+
+function openBook_(cls) {
+  try {
+    return SpreadsheetApp.openById(cls.sheetId);
+  } catch (err) {
+    if (err && err.need) throw err;   // 웹 버전: 시트를 먼저 읽어 와야 한다는 신호
+    throw new Error('스프레드시트를 열 수 없어요. 이 앱을 설치한 구글 계정으로 만든 시트인지 확인해 주세요. 다른 계정의 시트라면 설치한 계정을 편집자로 공유해야 해요.');
+  }
+}
+
+/* ---------- 시트 읽기 ---------- */
+
+function sheet_(ss, name, head) {
+  var sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name, ss.getSheets().length);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1, 1, 1, head.length).setValues([head]);
+    tidySheet_(sh, name);
+  }
+  return sh;
+}
+
+/** 시트 크기가 모자라면 늘린다. (범위를 벗어나 쓰면 오류가 나므로) */
+function grow_(sh, rows, cols) {
+  var mc = sh.getMaxColumns(), mr = sh.getMaxRows();
+  if (mc < cols) sh.insertColumnsAfter(mc, cols - mc + 10);
+  if (mr < rows) sh.insertRowsAfter(mr, rows - mr + 20);
+}
+
+/** 꾸미기는 실패해도 기록에는 지장이 없도록 감싼다. */
+function safe_(fn) {
+  try { fn(); } catch (err) { if (STRICT_ || (err && err.need)) throw err; }
+}
+
+function headStyle_(rng) {
+  rng.setBackground(C_HEAD).setFontColor('#ffffff').setFontWeight('bold')
+    .setHorizontalAlignment('center').setVerticalAlignment('middle');
+}
+
+/** 명단 · 기록 · 쉬는날 시트를 보기 좋게 정리한다. 여러 번 불러도 결과가 같다. */
+function tidySheet_(sh, name) {
+  safe_(function () {
+    var rows = Math.max(sh.getLastRow(), 2), cols = Math.max(sh.getLastColumn(), 3);
+    var maxR = sh.getMaxRows(), maxC = sh.getMaxColumns();
+    sh.setFrozenRows(1);
+    sh.setRowHeight(1, 32);
+    if (name === SH_ROSTER) {
+      sh.setTabColor('#4a90c9');
+      var w = [60, 110, 230, 60, 90];
+      for (var i = 0; i < w.length; i++) sh.setColumnWidth(i + 1, w[i]);
+      headStyle_(sh.getRange(1, 1, 1, 5));
+      sh.getRange(2, 1, maxR - 1, 5).setVerticalAlignment('middle').setHorizontalAlignment('center');
+      sh.getRange(2, 2, maxR - 1, 2).setHorizontalAlignment('left');
+      sh.getRange(1, 1, rows, 5).setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
+    } else if (name === SH_LOG) {
+      sh.setTabColor('#5fae57');
+      sh.setColumnWidth(1, 60); sh.setColumnWidth(2, 110); sh.setColumnWidth(3, 210);
+      if (maxC > 3) {
+        sh.setFrozenColumns(3);
+        sh.setColumnWidths(4, maxC - 3, 96);
+        sh.getRange(1, 4, maxR, maxC - 3).setHorizontalAlignment('center');
+      }
+      headStyle_(sh.getRange(1, 1, 1, cols));
+      sh.getRange(2, 1, maxR - 1, 1).setHorizontalAlignment('center');
+      sh.getRange(1, 1, maxR, maxC).setVerticalAlignment('middle');
+      sh.getRange(1, 1, rows, cols).setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
+      var body = sh.getRange(2, 4, maxR - 1, Math.max(maxC - 3, 1));
+      sh.setConditionalFormatRules([
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([body]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextContains(MARK).setBackground('#fff4c7').setFontColor('#c0392b').setRanges([body]).build()
+      ]);
+    } else if (name === SH_REST) {
+      sh.setTabColor('#f39a2b');
+      sh.setColumnWidth(1, 120); sh.setColumnWidth(2, 120); sh.setColumnWidth(3, 240);
+      headStyle_(sh.getRange(1, 1, 1, 3));
+      sh.getRange(2, 1, maxR - 1, 2).setHorizontalAlignment('center');
+      sh.getRange(1, 1, rows, 3).setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
+    }
+  });
+}
+
+function tidy_(ss) {
+  tidySheet_(sheet_(ss, SH_LOG, LOG_HEAD), SH_LOG);
+  tidySheet_(sheet_(ss, SH_ROSTER, ROSTER_HEAD), SH_ROSTER);
+  tidySheet_(sheet_(ss, SH_REST, REST_HEAD), SH_REST);
+}
+
+function pct_(a, b) {
+  return b ? Math.round(a / b * 100) + '%' : '-';
+}
+
+/**
+ * 맨 앞 [요약] 시트를 다시 쓴다. st 는 buildState_ 결과.
+ * full 이 참이면 칸 합치기, 색, 너비 같은 꾸밈도 다시 한다.
+ */
+function writeSummary_(cls, ss, st, full) {
+  var sh = ss.getSheetByName(SH_SUM);
+  if (!sh) { sh = ss.insertSheet(SH_SUM, 0); full = true; }
+  var a = st.students, n = a.length;
+  grow_(sh, SUM_TOP + n + 1, SUM_COLS);
+
+  var present = 0, done = 0, absent = 0, wkFull = 0, wkDays = 0, moFull = 0, moDays = 0, rows = [];
+  for (var i = 0; i < n; i++) {
+    var s = a[i], ok = !s.absent && s.done >= s.target, wk = [], wkCount = 0;
+    if (s.absent) absent++; else { present++; if (ok) done++; }
+    for (var j = 0; j < st.week.length; j++) {
+      var w = s.week[j];
+      wk.push(w === 'full' ? '★' : w === 'part' ? '△' : w === 'absent' ? '결' : '');
+      if (w === 'full') wkCount++;
+      if (st.week[j].has && w !== 'absent') { wkDays++; if (w === 'full') wkFull++; }
+    }
+    moFull += s.monthFull; moDays += s.monthDays;
+    rows.push([s.no, s.name, s.role, s.target,
+      s.absent ? ABSENT : ok ? '완료' : s.done > 0 ? (s.done + ' / ' + s.target) : '-']
+      .concat(wk, [wkCount + '일', s.monthFull + ' / ' + s.monthDays + '일', s.days ? s.total / s.days : '',
+        (s.streak + (ok ? 1 : 0)) + '일', s.total]));
+  }
+
+  var blank = function () { var r = []; for (var k = 0; k < SUM_COLS; k++) r.push(''); return r; };
+  var top = [blank(), blank(), blank(), blank(), blank()];
+  top[0][0] = cls.name + ' 1인 1역 요약';
+  top[1][0] = '기준: ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') + ' (' + WEEK_KO[st.dow] + '요일)' +
+    (st.rest ? ' · 오늘은 쉬는 날(' + st.rest + ')' : '') + '   ※ 도장을 찍을 때마다 자동으로 다시 쓰이는 시트입니다. 직접 고치지 마세요.';
+  var lab = [[0, '학생 수', n + '명'], [2, '오늘 다 한 친구', done + ' / ' + present + '명'], [3, '오늘 결석', absent + '명'],
+    [5, '이번 주 달성률', pct_(wkFull, wkDays)], [10, '이번 달 달성률', pct_(moFull, moDays)], [12, '기록한 날', st.days + '일']];
+  for (var q = 0; q < lab.length; q++) { top[3][lab[q][0]] = lab[q][1]; top[4][lab[q][0]] = lab[q][2]; }
+
+  sh.getRange(1, 1, 5, SUM_COLS).setValues(top);
+  sh.getRange(SUM_TOP, 1, 1, SUM_COLS).setValues([SUM_HEAD]);
+  if (n) sh.getRange(SUM_TOP + 1, 1, n, SUM_COLS).setValues(rows);
+  var last = sh.getLastRow();
+  if (last > SUM_TOP + n) { sh.getRange(SUM_TOP + n + 1, 1, last - SUM_TOP - n, SUM_COLS).clear(); full = true; }
+
+  if (full) safe_(function () {
+    sh.setTabColor('#d8362b');
+    sh.setHiddenGridlines(true);
+    sh.setFrozenRows(SUM_TOP);
+    var w = [56, 100, 200, 80, 90, 44, 44, 44, 44, 44, 76, 100, 96, 70, 96];
+    for (var c = 0; c < w.length; c++) sh.setColumnWidth(c + 1, w[c]);
+    sh.setRowHeight(1, 46); sh.setRowHeight(4, 26); sh.setRowHeight(5, 42); sh.setRowHeight(SUM_TOP, 32);
+
+    sh.getRange(1, 1, 1, SUM_COLS).merge().setBackground(C_HEAD).setFontColor('#ffffff').setFontSize(18).setFontWeight('bold')
+      .setHorizontalAlignment('left').setVerticalAlignment('middle');
+    sh.getRange(2, 1, 1, SUM_COLS).merge().setFontColor('#777777').setFontSize(9).setHorizontalAlignment('left');
+
+    var box = [[1, 2], [3, 1], [4, 2], [6, 5], [11, 2], [13, 3]];
+    for (var b = 0; b < box.length; b++) {
+      var l = sh.getRange(4, box[b][0], 1, box[b][1]), v = sh.getRange(5, box[b][0], 1, box[b][1]);
+      if (box[b][1] > 1) { l.merge(); v.merge(); }
+      l.setBackground(C_SOFT).setFontSize(10).setFontWeight('bold').setFontColor('#44546a').setHorizontalAlignment('center').setVerticalAlignment('middle');
+      v.setFontSize(16).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle');
+      sh.getRange(4, box[b][0], 2, box[b][1]).setBorder(true, true, true, true, null, null, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
+    }
+
+    headStyle_(sh.getRange(SUM_TOP, 1, 1, SUM_COLS));
+    if (n) {
+      var body = sh.getRange(SUM_TOP + 1, 1, n, SUM_COLS);
+      body.setHorizontalAlignment('center').setVerticalAlignment('middle').setFontSize(11).setFontWeight('normal').setFontColor('#222222')
+        .setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
+      sh.getRange(SUM_TOP + 1, 2, n, 2).setHorizontalAlignment('left');
+      sh.getRange(SUM_TOP + 1, 2, n, 1).setFontWeight('bold');
+      sh.getRange(SUM_TOP + 1, 13, n, 1).setNumberFormat('0%');
+      var bg = [];
+      for (var r = 0; r < n; r++) { var line = []; for (var k = 0; k < SUM_COLS; k++) line.push(r % 2 ? '#f7f9fb' : '#ffffff'); bg.push(line); }
+      body.setBackgrounds(bg);
+      var marks = sh.getRange(SUM_TOP + 1, 5, n, 6);
+      sh.setConditionalFormatRules([
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('완료').setBackground('#d9f2d0').setFontColor('#2e7d32').setBold(true).setRanges([marks]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([marks]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('결').setBackground('#e8e8e8').setFontColor('#888888').setRanges([marks]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('★').setFontColor('#e09a00').setRanges([marks]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo('△').setFontColor('#999999').setRanges([marks]).build()
+      ]);
+    }
+  });
+}
+
+function readRoster_(ss) {
+  var v = sheet_(ss, SH_ROSTER, ROSTER_HEAD).getDataRange().getValues();
+  var out = [], seen = {};
+  for (var i = 1; i < v.length; i++) {
+    var name = str_(v[i][1]);
+    if (!name) continue;
+    var no = str_(v[i][0]) || name;
+    if (seen['k' + no]) continue;
+    seen['k' + no] = true;
+    out.push({
+      no: no, name: name, role: str_(v[i][2]), icon: str_(v[i][3]),
+      target: clamp_(parseInt(v[i][4], 10) || 1, 1, MAX_TARGET)
+    });
+  }
+  return out;
+}
+
+function readLog_(ss) {
+  var sh = sheet_(ss, SH_LOG, LOG_HEAD);
+  var v = sh.getDataRange().getValues();
+  var tz = ss.getSpreadsheetTimeZone();
+  var dateCol = {}, rowOf = {};
+  for (var c = 3; c < v[0].length; c++) {
+    var d = normDate_(v[0][c], tz);
+    if (d && dateCol[d] === undefined) dateCol[d] = c;
+  }
+  for (var r = 1; r < v.length; r++) {
+    var k = 'k' + str_(v[r][0]);
+    if (k !== 'k' && rowOf[k] === undefined) rowOf[k] = r;
+  }
+  return { sh: sh, v: v, dateCol: dateCol, rowOf: rowOf };
+}
+
+function readRest_(ss) {
+  var v = sheet_(ss, SH_REST, REST_HEAD).getDataRange().getValues();
+  var tz = ss.getSpreadsheetTimeZone();
+  var out = [];
+  for (var i = 1; i < v.length; i++) {
+    var a = normDate_(v[i][0], tz);
+    if (!a) continue;
+    var b = normDate_(v[i][1], tz) || a;
+    if (b < a) b = a;
+    out.push({ start: a, end: b, name: str_(v[i][2]) });
+  }
+  return out;
+}
+
+function restReason_(d, rest) {
+  for (var i = 0; i < rest.length; i++) {
+    if (d >= rest[i].start && d <= rest[i].end) return rest[i].name || '쉬는 날';
+  }
+  var w = dow_(d);
+  return (w === 0 || w === 6) ? '주말' : '';
+}
+
+/* ---------- 화면에 필요한 상태 만들기 ---------- */
+
+function buildState_(cls, ss) {
+  var roster = readRoster_(ss), log = readLog_(ss), rest = readRest_(ss);
+  var today = today_();
+  var dates = [];
+  for (var d in log.dateCol) dates.push(d);
+  dates.sort();
+
+  var monday = addDays_(today, -((dow_(today) + 6) % 7));
+  var week = [];
+  for (var i = 0; i < 5; i++) {
+    var wd = addDays_(monday, i);
+    week.push({ date: wd, rest: !!restReason_(wd, rest), has: log.dateCol[wd] !== undefined });
+  }
+  var month = today.slice(0, 7);
+
+  var students = [];
+  for (var s = 0; s < roster.length; s++) {
+    var st = roster[s];
+    var row = log.rowOf['k' + st.no];
+    var cellAt = function (date) {
+      var c = log.dateCol[date];
+      if (row === undefined || c === undefined || c >= log.v[row].length) return null;
+      return parseCell_(log.v[row][c]);
+    };
+    var total = 0, days = 0, monthFull = 0, monthDays = 0, streak = 0, streakOpen = true;
+    for (var k = dates.length - 1; k >= 0; k--) {
+      var cell = cellAt(dates[k]) || { count: 0, absent: false };
+      var full = !cell.absent && cell.count >= st.target;
+      if (full) total++;
+      if (!cell.absent) days++;
+      if (dates[k].slice(0, 7) === month && !cell.absent) {
+        monthDays++;
+        if (full) monthFull++;
+      }
+      if (dates[k] < today && streakOpen && !cell.absent) {
+        if (full) streak++; else streakOpen = false;
+      }
+    }
+    var wk = [];
+    for (var j = 0; j < week.length; j++) {
+      var wc = cellAt(week[j].date);
+      if (wc && wc.absent) wk.push('absent');
+      else if (wc && wc.count >= st.target) wk.push('full');
+      else if (wc && wc.count > 0) wk.push('part');
+      else if (week[j].date > today) wk.push('future');
+      else if (week[j].rest) wk.push('rest');
+      else wk.push('none');
+    }
+    var now = cellAt(today) || { count: 0, absent: false };
+    students.push({
+      no: st.no, name: st.name, role: st.role, icon: st.icon, target: st.target,
+      done: Math.min(now.count, st.target), absent: now.absent,
+      streak: streak, week: wk, monthFull: monthFull, monthDays: monthDays, total: total, days: days
+    });
+  }
+
+  return {
+    code: cls.code, name: cls.name, sound: cls.sound !== false,
+    today: today, dow: dow_(today), rest: restReason_(today, rest),
+    week: week, students: students, days: dates.length
+  };
+}
+
+/* ---------- 누구나 부를 수 있는 함수 ---------- */
+
+function listClasses() {
+  var all = props_().getProperties(), out = [];
+  for (var k in all) {
+    if (k.indexOf('class_') !== 0) continue;
+    try { out.push({ code: k.slice(6), name: JSON.parse(all[k]).name }); } catch (err) { /* 건너뜀 */ }
+  }
+  out.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0; });
+  return out;
+}
+
+function createClass(name, sheetUrl, pw) {
+  name = str_(name).slice(0, 20);
+  pw = String(pw || '');
+  if (!name) throw new Error('학급 이름을 적어 주세요.');
+  if (pw.length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
+  var made = !str_(sheetUrl);
+  var id = made ? SpreadsheetApp.create('1인 1역 기록 - ' + name).getId() : parseSheetId_(sheetUrl);
+  var code = '';
+  do {
+    code = '';
+    for (var i = 0; i < 6; i++) code += 'abcdefghjkmnpqrstuvwxyz23456789'.charAt(Math.floor(Math.random() * 31));
+  } while (props_().getProperty('class_' + code));
+  var cls = { code: code, name: name, sheetId: id, sound: true };
+  cls.pw = hash_(code, pw);
+  var ss = openBook_(cls);
+  tidy_(ss);
+  writeSummary_(cls, ss, buildState_(cls, ss), true);
+  // 새로 만든 파일이면 처음부터 있던 빈 시트는 지운다.
+  if (made) safe_(function () {
+    var all = ss.getSheets(), keep = [SH_SUM, SH_LOG, SH_ROSTER, SH_REST];
+    for (var k = 0; k < all.length; k++) if (keep.indexOf(all[k].getName()) < 0) ss.deleteSheet(all[k]);
+  });
+  putClass_(cls);
+  return { code: code };
+}
+
+function getState(code) {
+  var cls = getClass_(code);
+  return buildState_(cls, openBook_(cls));
+}
+
+/** 오늘 칸을 고친다. fn(현재 칸, 학생) -> { text: 새 값, out: 돌려줄 값 } */
+function mutate_(cls, no, date, fn) {
+  if (date !== today_()) return { stale: true };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = openBook_(cls);
+    var roster = readRoster_(ss), st = null;
+    for (var i = 0; i < roster.length; i++) if (roster[i].no === String(no)) st = roster[i];
+    if (!st) return { stale: true };
+    var log = readLog_(ss), sh = log.sh;
+    var c = log.dateCol[date];
+    var r = log.rowOf['k' + st.no];
+    var cur = '';
+    if (r !== undefined && c !== undefined && c < log.v[r].length) cur = log.v[r][c];
+    var fresh = false;
+    if (c === undefined) {
+      c = Math.max(sh.getLastColumn(), 3);
+      grow_(sh, 1, c + 1);
+      sh.getRange(1, c + 1).setNumberFormat('@').setValue(date);
+      fresh = true;
+    }
+    if (r === undefined) {
+      r = Math.max(sh.getLastRow(), 1);
+      grow_(sh, r + 1, 3);
+      sh.getRange(r + 1, 1, 1, 3).setNumberFormat('@').setValues([[st.no, st.name, st.role]]);
+      fresh = true;
+    }
+    var next = fn(parseCell_(cur), st);
+    sh.getRange(r + 1, c + 1).setValue(next.text);
+    if (fresh) tidySheet_(sh, SH_LOG);
+    safe_(function () { writeSummary_(cls, ss, buildState_(cls, ss), false); });
+    return next.out;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 학생이 터치했을 때. delta 는 +1(도장) 또는 -1(지우기). */
+function record(code, no, delta, date) {
+  var cls = getClass_(code);
+  delta = delta > 0 ? 1 : -1;
+  return mutate_(cls, no, date, function (cell, st) {
+    var n = clamp_(cell.count + delta, 0, st.target);
+    return { text: marks_(n), out: { no: st.no, done: n } };
+  });
+}
+
+/* ---------- 비밀번호가 필요한 함수 (설정) ---------- */
+
+function auth(code, pw) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var ss = openBook_(cls);
+  return {
+    name: cls.name, sound: cls.sound !== false, sheetUrl: sheetUrl_(cls.sheetId),
+    roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
+  };
+}
+
+function saveRoster(code, pw, list) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var rows = [], seen = {};
+  for (var i = 0; i < (list || []).length; i++) {
+    var it = list[i] || {};
+    var name = str_(it.name).slice(0, 12);
+    if (!name) continue;
+    var no = str_(it.no).slice(0, 6) || String(rows.length + 1);
+    if (seen['k' + no]) throw new Error('번호가 겹쳐요: ' + no + '번');
+    seen['k' + no] = true;
+    rows.push([no, name, str_(it.role).slice(0, 20), str_(it.icon).slice(0, 8),
+      clamp_(parseInt(it.target, 10) || 1, 1, MAX_TARGET)]);
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = openBook_(cls);
+    var sh = sheet_(ss, SH_ROSTER, ROSTER_HEAD);
+    var last = sh.getLastRow();
+    if (last > 1) sh.getRange(2, 1, last - 1, ROSTER_HEAD.length).clearContent();
+    if (rows.length) {
+      grow_(sh, rows.length + 1, ROSTER_HEAD.length);
+      sh.getRange(2, 1, rows.length, 1).setNumberFormat('@');
+      sh.getRange(2, 1, rows.length, ROSTER_HEAD.length).setValues(rows);
+    }
+    // 기록 시트의 이름·역할을 맞추고, 아직 줄이 없는 친구는 명단 순서대로 줄을 만들어 둔다.
+    var log = readLog_(ss), add = [];
+    for (var j = 0; j < rows.length; j++) {
+      var r = log.rowOf['k' + rows[j][0]];
+      if (r === undefined) add.push([rows[j][0], rows[j][1], rows[j][2]]);
+      else if (str_(log.v[r][1]) !== rows[j][1] || str_(log.v[r][2]) !== rows[j][2]) {
+        log.sh.getRange(r + 1, 2, 1, 2).setValues([[rows[j][1], rows[j][2]]]);
+      }
+    }
+    if (add.length) {
+      var at = Math.max(log.sh.getLastRow(), 1);
+      grow_(log.sh, at + add.length, 3);
+      log.sh.getRange(at + 1, 1, add.length, 3).setNumberFormat('@').setValues(add);
+    }
+    tidy_(ss);
+    var state = buildState_(cls, ss);
+    writeSummary_(cls, ss, state, true);
+    return state;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setAbsent(code, pw, no, absent, date) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  return mutate_(cls, no, date, function (cell, st) {
+    if (absent) return { text: ABSENT, out: { no: st.no, absent: true, done: 0 } };
+    return { text: cell.absent ? '' : marks_(cell.count), out: { no: st.no, absent: false, done: cell.absent ? 0 : cell.count } };
+  });
+}
+
+function saveRest(code, pw, list) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  var rows = [];
+  for (var i = 0; i < (list || []).length; i++) {
+    var a = normDate_(list[i].start), b = normDate_(list[i].end) || a;
+    if (!a) continue;
+    if (b < a) b = a;
+    rows.push([a, b, str_(list[i].name).slice(0, 20)]);
+  }
+  rows.sort(function (x, y) { return x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0; });
+  var ss = openBook_(cls);
+  var sh = sheet_(ss, SH_REST, REST_HEAD);
+  var last = sh.getLastRow();
+  if (last > 1) sh.getRange(2, 1, last - 1, 3).clearContent();
+  if (rows.length) {
+    grow_(sh, rows.length + 1, 3);
+    sh.getRange(2, 1, rows.length, 3).setNumberFormat('@').setValues(rows);
+  }
+  tidySheet_(sh, SH_REST);
+  var state = buildState_(cls, ss);
+  safe_(function () { writeSummary_(cls, ss, state, false); });
+  return state;
+}
+
+/** 학급 이름, 효과음, 비밀번호, 스프레드시트 주소 변경. 바꿀 것만 넣는다. */
+function updateClass(code, pw, change) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  change = change || {};
+  if (change.name !== undefined) {
+    var name = str_(change.name).slice(0, 20);
+    if (!name) throw new Error('학급 이름을 적어 주세요.');
+    cls.name = name;
+  }
+  if (change.sound !== undefined) cls.sound = !!change.sound;
+  if (change.newPw !== undefined) {
+    if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
+    cls.pw = hash_(cls.code, String(change.newPw));
+  }
+  var copied = false;
+  var made = !!change.newSheet;
+  if (made || change.sheetUrl !== undefined) {
+    // newSheet 이면 배포한 선생님의 드라이브에 새 파일을 만들어 그쪽으로 옮긴다.
+    var id = made
+      ? SpreadsheetApp.create('1인 1역 기록 - ' + cls.name + ' (' + today_() + ')').getId()
+      : parseSheetId_(change.sheetUrl);
+    if (id !== cls.sheetId) {
+      var oldBook = openBook_(cls);
+      var next = { sheetId: id };
+      var ss = openBook_(next);
+      var rs = sheet_(ss, SH_ROSTER, ROSTER_HEAD);
+      sheet_(ss, SH_LOG, LOG_HEAD);
+      var hs = sheet_(ss, SH_REST, REST_HEAD);
+      // 새 시트에 명단이 없으면 지금 명단과 쉬는 날을 옮겨 준다.
+      if (rs.getLastRow() <= 1) {
+        var roster = readRoster_(oldBook), rest = readRest_(oldBook), a = [], b = [];
+        for (var i = 0; i < roster.length; i++) a.push([roster[i].no, roster[i].name, roster[i].role, roster[i].icon, roster[i].target]);
+        for (var j = 0; j < rest.length; j++) b.push([rest[j].start, rest[j].end, rest[j].name]);
+        if (a.length) {
+          rs.getRange(2, 1, a.length, 1).setNumberFormat('@');
+          rs.getRange(2, 1, a.length, 5).setValues(a);
+          copied = true;
+        }
+        if (b.length && hs.getLastRow() <= 1) hs.getRange(2, 1, b.length, 3).setNumberFormat('@').setValues(b);
+      }
+      cls.sheetId = id;
+    }
+  }
+  putClass_(cls);
+  if (change.name !== undefined || change.sheetUrl !== undefined || made) {
+    safe_(function () {
+      var book = openBook_(cls);
+      tidy_(book);
+      writeSummary_(cls, book, buildState_(cls, book), true);
+      if (made) {
+        var all = book.getSheets(), keep = [SH_SUM, SH_LOG, SH_ROSTER, SH_REST];
+        for (var k = 0; k < all.length; k++) if (keep.indexOf(all[k].getName()) < 0) book.deleteSheet(all[k]);
+      }
+    });
+  }
+  return { name: cls.name, sound: cls.sound, sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+}
+
+/** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */
+function deleteClass(code, pw) {
+  var cls = getClass_(code);
+  checkPw_(cls, pw);
+  props_().deleteProperty('class_' + cls.code);
+  return true;
+}
+
+/* ---------- 설치 점검 ---------- */
+
+/**
+ * 설치가 잘 되었는지 실제 구글 시트로 확인한다.
+ * 편집기 위쪽 함수 목록에서 [설치점검]을 고르고 [실행]을 누른 뒤, 아래 실행 로그를 본다.
+ * 점검용 스프레드시트 하나를 드라이브에 만들어 쓰며, 끝난 뒤 지워도 된다.
+ */
+function 설치점검() {
+  var out = [], bad = 0;
+  var check = function (name, ok, detail) {
+    if (!ok) bad++;
+    out.push((ok ? '✅ ' : '❌ ') + name + (ok || !detail ? '' : '  →  ' + detail));
+  };
+  var CODE = 'selftest', PW = 'selftest-pw';
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    // 1. 점검용 스프레드시트 준비 (있으면 다시 쓴다)
+    var id = props_().getProperty('selftest_id'), ss = null;
+    if (id) { try { ss = SpreadsheetApp.openById(id); } catch (err) { ss = null; } }
+    if (!ss) {
+      ss = SpreadsheetApp.create('1인 1역 설치 점검용 (지워도 됩니다)');
+      props_().setProperty('selftest_id', ss.getId());
+    }
+    var tmp = ss.getSheetByName('임시') || ss.insertSheet('임시', 0);
+    var old = ss.getSheets();
+    for (var i = 0; i < old.length; i++) if (old[i].getName() !== '임시') ss.deleteSheet(old[i]);
+    check('스프레드시트 만들기', true);
+
+    var cls = { code: CODE, name: '설치 점검반', sheetId: ss.getId(), sound: true };
+    cls.pw = hash_(CODE, PW);
+    putClass_(cls);
+    var today = today_();
+
+    // 2. 명단 저장
+    var st = saveRoster(CODE, PW, [
+      { no: '1', name: '가람', role: '칠판 지우기', icon: '', target: 3 },
+      { no: '2', name: '나래', role: '칠판 지우기', icon: '', target: 3 },
+      { no: '3', name: '다온', role: '우유 나르기', icon: '', target: 1 }
+    ]);
+    check('명단 저장', st.students.length === 3, '학생 수 ' + st.students.length);
+    ss.deleteSheet(tmp);
+    var names = [], all = ss.getSheets();
+    for (var k = 0; k < all.length; k++) names.push(all[k].getName());
+    check('시트 구성 (요약이 맨 앞)', names[0] === SH_SUM && names.length === 4, names.join(', '));
+
+    // 3. 도장 찍기와 지우기
+    var r1 = record(CODE, '3', 1, today);
+    check('도장 찍기', r1.done === 1, JSON.stringify(r1));
+    record(CODE, '1', 1, today);
+    var r2 = record(CODE, '1', 1, today);
+    check('하루 여러 번 하는 역할', r2.done === 2, JSON.stringify(r2));
+    var r3 = record(CODE, '1', -1, today);
+    check('도장 지우기', r3.done === 1, JSON.stringify(r3));
+    for (var n = 0; n < 5; n++) record(CODE, '2', 1, today);
+    var log = readLog_(ss), col = log.dateCol[today];
+    var cellOf = function (no) { var row = log.rowOf['k' + no]; return row === undefined || col === undefined ? '(없음)' : String(log.v[row][col]); };
+    check('기록 시트에 ○ 저장', cellOf('3') === MARK && cellOf('1') === MARK && cellOf('2') === MARK + MARK + MARK,
+      [cellOf('1'), cellOf('2'), cellOf('3')].join(' | '));
+    check('어제 날짜로는 저장 안 됨', record(CODE, '3', 1, addDays_(today, -1)).stale === true);
+
+    // 4. 결석
+    var ab = setAbsent(CODE, PW, '3', true, today);
+    check('결석 표시', ab.absent === true && getState(CODE).students[2].absent === true);
+    setAbsent(CODE, PW, '3', false, today);
+    record(CODE, '3', 1, today);
+
+    // 5. 쉬는 날
+    var far = addDays_(today, 400);
+    saveRest(CODE, PW, [{ start: far, end: addDays_(far, 2), name: '점검용 방학' }]);
+    var rest = readRest_(ss);
+    check('쉬는 날 저장', rest.length === 1 && rest[0].start === far && rest[0].name === '점검용 방학', JSON.stringify(rest));
+
+    // 6. 화면에 보낼 상태와 요약 시트
+    var now = getState(CODE), a = now.students;
+    check('화면 상태', a[0].done === 1 && a[1].done === 3 && a[2].done === 1 && !a[2].absent,
+      a[0].done + ', ' + a[1].done + ', ' + a[2].done);
+    var sum = ss.getSheetByName(SH_SUM).getDataRange().getValues();
+    check('요약 시트 제목', String(sum[0][0]).indexOf('설치 점검반') === 0, String(sum[0][0]));
+    check('요약 시트 현황', String(sum[4][0]) === '3명' && String(sum[4][2]) === '2 / 3명', sum[4][0] + ' | ' + sum[4][2]);
+    check('요약 시트 학생 표', String(sum[SUM_TOP][1]) === '가람' && String(sum[SUM_TOP][4]) === '1 / 3' && String(sum[SUM_TOP + 1][4]) === '완료',
+      sum[SUM_TOP][1] + ' | ' + sum[SUM_TOP][4] + ' | ' + sum[SUM_TOP + 1][4]);
+
+    // 7. 날짜 열이 시트 너비(26칸)를 넘어가도 저장되는지
+    var sh = log.sh, past = [];
+    for (var d = 40; d >= 1; d--) past.push(addDays_(today, -d - 400));
+    grow_(sh, 1, 4 + past.length);
+    var lastCol = sh.getLastColumn();
+    sh.getRange(1, lastCol + 1, 1, past.length).setNumberFormat('@').setValues([past]);
+    sh.getRange(1, col + 1).setValue('');   // 오늘 열의 머리글을 지워 새 열이 맨 끝에 생기게 한다
+    var wide = record(CODE, '1', 1, today), end = sh.getLastColumn();
+    check('날짜가 많아져도 저장', wide.done === 1 && end === lastCol + past.length + 1, '마지막 열 ' + end);
+
+    // 8. 비밀번호
+    var denied = false;
+    try { auth(CODE, 'wrong'); } catch (err2) { denied = true; }
+    check('틀린 비밀번호 거절', denied);
+    check('맞는 비밀번호 통과', auth(CODE, PW).roster.length === 3);
+
+    // 9. 시트 꾸미기 (실패해도 기록에는 지장 없음)
+    STRICT_ = true;
+    try {
+      tidy_(ss);
+      writeSummary_(cls, ss, buildState_(cls, ss), true);
+      check('시트 꾸미기', true);
+    } catch (err3) {
+      out.push('⚠️ 시트 꾸미기 일부 실패 (기록에는 지장 없음)  →  ' + err3.message);
+    }
+    STRICT_ = false;
+  } catch (err) {
+    check('점검 도중 오류', false, err.message);
+  } finally {
+    STRICT_ = false;
+    props_().deleteProperty('class_' + CODE);
+    lock.releaseLock();
+  }
+  out.push('');
+  out.push(bad ? '❌ ' + bad + '개 항목에 문제가 있어요. 위 내용을 그대로 복사해 문의해 주세요.'
+    : '🎉 모든 점검을 통과했어요. 이제 [배포]를 하시면 됩니다.');
+  out.push('(드라이브에 생긴 "1인 1역 설치 점검용" 파일은 지워도 됩니다.)');
+  var text = out.join('\n');
+  Logger.log('\n' + text);
+  return text;
+}
+
+</script>
+<script>
+/*
+ * 웹 버전 연결부.
+ *
+ * Code.gs 는 원래 구글 Apps Script 서버에서 돌지만, 웹 버전에서는 같은 코드를 브라우저에서 그대로 돌린다.
+ * 이 파일이 Apps Script 가 주던 것(SpreadsheetApp, PropertiesService 등)을 흉내 내고,
+ * 실제 읽기·쓰기는 로그인한 사용자의 권한으로 Google Sheets API / Drive API 에 보낸다.
+ *
+ *   읽기 : 스프레드시트 전체를 메모리로 가져온다 (요청 2번)
+ *   실행 : Code.gs 함수가 메모리 위에서 한 번에 돈다
+ *   쓰기 : 바뀐 칸과 꾸밈을 모아 API 로 보낸다
+ *
+ * 학급 목록은 서버가 없으므로 드라이브 파일의 appProperties 에 적어 둔다.
+ * 권한은 drive.file (이 앱이 만든 파일만) 과 이메일 주소뿐이다.
+ */
+(function (g) {
+  'use strict';
+
+  var CFG = g.ONE_ROLE_CONFIG || {};
+  var SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+  var SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
+  var DRIVE = 'https://www.googleapis.com/drive/v3/files';
+  var FRESH_MS = 45 * 1000;        // 이 시간 안에는 시트를 다시 읽지 않는다
+  var MAX_AGE_MS = 5 * 60 * 1000;  // 계속 쓰고 있어도 이 시간이 지나면 다시 읽는다
+  var NAMES = ['listClasses', 'createClass', 'getState', 'record', 'auth', 'saveRoster', 'setAbsent', 'saveRest', 'updateClass', 'deleteClass'];
+
+  function ls(k, v) {
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) { /* 저장소를 못 쓰는 브라우저 */ }
+    return null;
+  }
+
+  /* ================= 로그인 ================= */
+
+  var tok = null, tokExp = 0, client = null, requesting = false, reqTimer = 0, waiters = [];
+  var email = ls('or_email') || '';
+
+  function tokenOk(marginMs) { return !!tok && Date.now() < tokExp - (marginMs || 30000); }
+
+  function gis() {
+    if (client) return true;
+    if (!(g.google && g.google.accounts && g.google.accounts.oauth2)) return false;
+    client = g.google.accounts.oauth2.initTokenClient({
+      client_id: CFG.clientId, scope: SCOPE,
+      callback: function (r) {
+        if (r && r.access_token) gotToken(r); else failToken((r && r.error) || 'denied');
+      },
+      error_callback: function (e) { failToken((e && e.type) || 'error'); }
+    });
+    return true;
+  }
+
+  function gotToken(r) {
+    requesting = false; clearTimeout(reqTimer);
+    tok = r.access_token;
+    tokExp = Date.now() + (parseInt(r.expires_in, 10) || 3600) * 1000;
+    hideLogin();
+    var w = waiters; waiters = [];
+    for (var i = 0; i < w.length; i++) w[i](tok);
+    if (!email) {
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + tok } })
+        .then(function (res) { return res.ok ? res.json() : {}; })
+        .then(function (j) { if (j && j.email) { email = j.email; ls('or_email', email); } })
+        .catch(function () {});
+    }
+  }
+
+  function failToken(why) {
+    requesting = false; clearTimeout(reqTimer);
+    showLogin(why === 'popup_failed_to_open' ? '로그인 창이 막혔어요. 아래 버튼을 눌러 주세요.' :
+      why === 'access_denied' ? '권한을 허용해야 기록을 저장할 수 있어요.' : '');
+  }
+
+  /** 로그인 창을 연다. 브라우저가 창을 막지 않도록 반드시 누르는 동작 안에서 불러야 한다. */
+  function requestToken(pick) {
+    if (requesting) return;
+    if (!gis()) { showLogin('구글 로그인 준비 중이에요. 잠시 후 다시 눌러 주세요.'); return; }
+    requesting = true;
+    clearTimeout(reqTimer);
+    reqTimer = setTimeout(function () { if (requesting) failToken('timeout'); }, 90000);
+    var opt = { prompt: pick ? 'select_account' : '' };
+    if (email && !pick) opt.login_hint = email;
+    try { client.requestAccessToken(opt); } catch (e) { failToken('error'); }
+  }
+
+  function getToken() {
+    if (tokenOk()) return Promise.resolve(tok);
+    return new Promise(function (resolve) {
+      waiters.push(resolve);
+      if (!requesting) showLogin('');
+    });
+  }
+
+  // 화면을 누를 때마다 확인해서, 로그인이 곧 끝나거나 끝났으면 그 누름을 이용해 조용히 갱신한다.
+  document.addEventListener('click', function (ev) {
+    if (!CFG.clientId || !email || requesting) return;
+    if (ev.target && ev.target.closest && ev.target.closest('#or-login')) return;
+    if (!tokenOk(8 * 60 * 1000)) requestToken(false);
+  }, true);
+
+  function showLogin(msg) {
+    var d = document.getElementById('or-login');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'or-login';
+      d.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:200;display:flex;align-items:center;justify-content:center;' +
+        'background:rgba(43,42,40,.55);padding:16px;font-family:Jua,sans-serif';
+      document.body.appendChild(d);
+    }
+    var box = 'background:#fffdf6;border:3px solid #2b2a28;border-radius:14px 22px 16px 24px / 22px 14px 24px 16px;padding:26px;max-width:460px;' +
+      'text-align:center;box-shadow:6px 8px 0 rgba(43,42,40,.3)';
+    if (!CFG.clientId) {
+      d.innerHTML = '<div style="' + box + '"><div style="font-size:26px;margin-bottom:10px">아직 준비가 덜 됐어요</div>' +
+        '<div style="font-size:17px;line-height:1.5">config.js 에 구글 로그인용 클라이언트 ID가 없습니다.<br>설정 안내서를 따라 넣어 주세요.</div></div>';
+      return;
+    }
+    d.innerHTML = '<div style="' + box + '"><div style="font-size:28px;margin-bottom:8px">' + (email ? '다시 로그인해 주세요' : '구글 로그인이 필요해요') + '</div>' +
+      '<div style="font-size:17px;line-height:1.5;margin-bottom:16px">' + (msg || (email ? esc(email) + ' 계정으로 이어서 씁니다.' : '기록은 로그인한 계정의 구글 드라이브에 저장돼요.')) + '</div>' +
+      '<button id="or-go" style="font:inherit;font-size:22px;padding:12px 26px;background:#f7cf3d;border:2.5px solid #2b2a28;border-radius:14px;cursor:pointer;box-shadow:3px 4px 0 rgba(43,42,40,.22)">구글로 로그인</button>' +
+      (email ? '<div style="margin-top:14px"><button id="or-other" style="font:inherit;font-size:16px;background:none;border:0;text-decoration:underline;cursor:pointer">다른 계정으로 로그인</button></div>' : '') +
+      '</div>';
+    document.getElementById('or-go').onclick = function () { requestToken(false); };
+    var o = document.getElementById('or-other');
+    if (o) o.onclick = function () { email = ''; ls('or_email', null); requestToken(true); };
+  }
+  function hideLogin() { var d = document.getElementById('or-login'); if (d) d.parentNode.removeChild(d); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  g.ONE_ROLE = {
+    email: function () { return email; },
+    logout: function () {
+      try { if (tok && g.google && g.google.accounts) g.google.accounts.oauth2.revoke(tok, function () {}); } catch (e) { /* 무시 */ }
+      tok = null; tokExp = 0; email = ''; ls('or_email', null);
+      books = {}; classes = {}; listAt = 0;
+    },
+    // 자동 검사에서만 쓴다.
+    _test: { expire: function () { tokExp = 0; }, stale: function () { stale(); } }
+  };
+
+  /* ================= 구글 API 호출 ================= */
+
+  function http(method, url, body) {
+    return getToken().then(function (t) {
+      return fetch(url, {
+        method: method,
+        headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+    }).then(function (res) {
+      if (res.ok) return res.status === 204 ? {} : res.json();
+      return res.json().catch(function () { return {}; }).then(function (j) {
+        var raw = (j && j.error && j.error.message) || ('HTTP ' + res.status);
+        if (res.status === 401) { tok = null; tokExp = 0; }
+        var msg = res.status === 401 ? '로그인이 끝났어요. 화면을 한 번 더 눌러 주세요.' :
+          res.status === 429 ? '요청이 잠깐 몰렸어요. 곧 다시 저장합니다.' :
+          res.status === 404 ? '스프레드시트를 찾을 수 없어요. 드라이브에서 지워졌을 수 있어요.' :
+          res.status === 403 ? '구글이 요청을 거절했어요: ' + raw : '구글 오류: ' + raw;
+        var e = new Error(msg); e.status = res.status; throw e;
+      });
+    });
+  }
+
+  /* ================= 메모리 위의 스프레드시트 ================= */
+
+  var books = {};      // id -> Book
+  var P = null;        // 지금 실행 중인 함수가 남긴 쓰기 목록
+  var premade = {};    // 제목 -> 미리 만들어 둔 새 스프레드시트 (한 번의 실행이 끝날 때까지 유지)
+
+  function color(hex) {
+    var n = parseInt(String(hex).replace('#', ''), 16);
+    return { red: ((n >> 16) & 255) / 255, green: ((n >> 8) & 255) / 255, blue: (n & 255) / 255 };
+  }
+  function colName(c) { var s = ''; while (c > 0) { var m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = (c - m - 1) / 26; } return s; }
+  function quote(name) { return "'" + String(name).replace(/'/g, "''") + "'"; }
+  function ops(book) {
+    if (!P) throw new Error('쓰기 준비가 안 됐어요.');
+    if (!P[book.id]) { P[book.id] = { book: book, struct: [], values: [], fmt: [] }; P.order.push(book.id); }
+    return P[book.id];
+  }
+
+  function Range(sh, r, c, h, w) { this.sh = sh; this.r = r; this.c = c; this.h = h || 1; this.w = w || 1; }
+  Range.prototype.grid = function () {
+    return { sheetId: this.sh.sheetId, startRowIndex: this.r - 1, endRowIndex: this.r - 1 + this.h, startColumnIndex: this.c - 1, endColumnIndex: this.c - 1 + this.w };
+  };
+  Range.prototype.a1 = function () {
+    return quote(this.sh.name) + '!' + colName(this.c) + this.r + ':' + colName(this.c + this.w - 1) + (this.r + this.h - 1);
+  };
+  Range.prototype.getValues = function () {
+    var out = [];
+    for (var i = 0; i < this.h; i++) {
+      var row = [], src = this.sh.d[this.r - 1 + i] || [];
+      for (var j = 0; j < this.w; j++) { var v = src[this.c - 1 + j]; row.push(v === undefined || v === null ? '' : v); }
+      out.push(row);
+    }
+    return out;
+  };
+  Range.prototype.getValue = function () { return this.getValues()[0][0]; };
+  Range.prototype.setValues = function (v) {
+    if (v.length !== this.h || v[0].length !== this.w) throw new Error('값의 크기가 범위와 달라요.');
+    if (this.r + this.h - 1 > this.sh.maxR || this.c + this.w - 1 > this.sh.maxC) throw new Error('범위가 시트 크기를 벗어났어요.');
+    var copy = [];
+    for (var i = 0; i < this.h; i++) {
+      var y = this.r - 1 + i, line = [];
+      while (this.sh.d.length <= y) this.sh.d.push([]);
+      for (var j = 0; j < this.w; j++) {
+        var x = v[i][j]; if (x === undefined || x === null) x = '';
+        this.sh.d[y][this.c - 1 + j] = x; line.push(x);
+      }
+      copy.push(line);
+    }
+    ops(this.sh.book).values.push({ range: this.a1(), values: copy });
+    return this;
+  };
+  Range.prototype.setValue = function (v) {
+    var a = [];
+    for (var i = 0; i < this.h; i++) { var row = []; for (var j = 0; j < this.w; j++) row.push(v); a.push(row); }
+    return this.setValues(a);
+  };
+  Range.prototype.clearContent = function () { return this.setValue(''); };
+  Range.prototype.clear = function () {
+    for (var i = 0; i < this.h; i++) {
+      var row = this.sh.d[this.r - 1 + i]; if (!row) continue;
+      for (var j = 0; j < this.w; j++) if (this.c - 1 + j < row.length) row[this.c - 1 + j] = '';
+    }
+    ops(this.sh.book).fmt.push({ updateCells: { range: this.grid(), fields: 'userEnteredValue,userEnteredFormat' } });
+    return this;
+  };
+  Range.prototype.fmt = function (format, fields) {
+    ops(this.sh.book).fmt.push({ repeatCell: { range: this.grid(), cell: { userEnteredFormat: format }, fields: fields } });
+    return this;
+  };
+  Range.prototype.setBackground = function (c) { return this.fmt({ backgroundColor: color(c) }, 'userEnteredFormat.backgroundColor'); };
+  Range.prototype.setFontColor = function (c) { return this.fmt({ textFormat: { foregroundColor: color(c) } }, 'userEnteredFormat.textFormat.foregroundColor'); };
+  Range.prototype.setFontWeight = function (w) { return this.fmt({ textFormat: { bold: w === 'bold' } }, 'userEnteredFormat.textFormat.bold'); };
+  Range.prototype.setFontSize = function (n) { return this.fmt({ textFormat: { fontSize: n } }, 'userEnteredFormat.textFormat.fontSize'); };
+  Range.prototype.setHorizontalAlignment = function (a) { return this.fmt({ horizontalAlignment: String(a).toUpperCase() }, 'userEnteredFormat.horizontalAlignment'); };
+  Range.prototype.setVerticalAlignment = function (a) { return this.fmt({ verticalAlignment: String(a).toUpperCase() }, 'userEnteredFormat.verticalAlignment'); };
+  Range.prototype.setNumberFormat = function (f) {
+    return this.fmt({ numberFormat: f === '@' ? { type: 'TEXT' } : { type: 'PERCENT', pattern: f } }, 'userEnteredFormat.numberFormat');
+  };
+  Range.prototype.setBackgrounds = function (rows) {
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var vals = [];
+      for (var j = 0; j < rows[i].length; j++) vals.push({ userEnteredFormat: { backgroundColor: color(rows[i][j]) } });
+      out.push({ values: vals });
+    }
+    ops(this.sh.book).fmt.push({ updateCells: { range: this.grid(), rows: out, fields: 'userEnteredFormat.backgroundColor' } });
+    return this;
+  };
+  Range.prototype.setBorder = function (top, left, bottom, right, vertical, horizontal, col) {
+    var b = { style: 'SOLID', color: color(col || '#000000') }, req = { range: this.grid() };
+    if (top) req.top = b; if (left) req.left = b; if (bottom) req.bottom = b; if (right) req.right = b;
+    if (vertical) req.innerVertical = b; if (horizontal) req.innerHorizontal = b;
+    ops(this.sh.book).fmt.push({ updateBorders: req });
+    return this;
+  };
+  Range.prototype.merge = function () {
+    var o = ops(this.sh.book);
+    o.fmt.push({ unmergeCells: { range: this.grid() } });
+    o.fmt.push({ mergeCells: { range: this.grid(), mergeType: 'MERGE_ALL' } });
+    return this;
+  };
+
+  function Sheet(book, p, cfCount) {
+    this.book = book; this.name = p.title; this.sheetId = p.sheetId; this.d = [];
+    this.maxR = (p.gridProperties && p.gridProperties.rowCount) || 1000;
+    this.maxC = (p.gridProperties && p.gridProperties.columnCount) || 26;
+    this.cf = cfCount || 0;
+  }
+  Sheet.prototype.getName = function () { return this.name; };
+  Sheet.prototype.getMaxRows = function () { return this.maxR; };
+  Sheet.prototype.getMaxColumns = function () { return this.maxC; };
+  Sheet.prototype.getLastRow = function () {
+    for (var i = this.d.length - 1; i >= 0; i--) { var row = this.d[i] || []; for (var j = 0; j < row.length; j++) if (row[j] !== '' && row[j] !== undefined && row[j] !== null) return i + 1; }
+    return 0;
+  };
+  Sheet.prototype.getLastColumn = function () {
+    var m = 0;
+    for (var i = 0; i < this.d.length; i++) { var row = this.d[i] || []; for (var j = row.length - 1; j >= m; j--) if (row[j] !== '' && row[j] !== undefined && row[j] !== null) { m = j + 1; break; } }
+    return m;
+  };
+  Sheet.prototype.getRange = function (r, c, h, w) { return new Range(this, r, c, h, w); };
+  Sheet.prototype.getDataRange = function () { return new Range(this, 1, 1, Math.max(this.getLastRow(), 1), Math.max(this.getLastColumn(), 1)); };
+  Sheet.prototype.insertColumnsAfter = function (after, n) {
+    this.maxC += n; ops(this.book).struct.push({ appendDimension: { sheetId: this.sheetId, dimension: 'COLUMNS', length: n } });
+  };
+  Sheet.prototype.insertRowsAfter = function (after, n) {
+    this.maxR += n; ops(this.book).struct.push({ appendDimension: { sheetId: this.sheetId, dimension: 'ROWS', length: n } });
+  };
+  Sheet.prototype.prop = function (props, fields) {
+    props.sheetId = this.sheetId;
+    ops(this.book).fmt.push({ updateSheetProperties: { properties: props, fields: fields } });
+  };
+  Sheet.prototype.setFrozenRows = function (n) { this.prop({ gridProperties: { frozenRowCount: n } }, 'gridProperties.frozenRowCount'); };
+  Sheet.prototype.setFrozenColumns = function (n) { this.prop({ gridProperties: { frozenColumnCount: n } }, 'gridProperties.frozenColumnCount'); };
+  Sheet.prototype.setHiddenGridlines = function (b) { this.prop({ gridProperties: { hideGridlines: !!b } }, 'gridProperties.hideGridlines'); };
+  Sheet.prototype.setTabColor = function (c) { this.prop({ tabColor: color(c) }, 'tabColor'); };
+  Sheet.prototype.dim = function (dimension, start, count, px) {
+    ops(this.book).fmt.push({ updateDimensionProperties: {
+      range: { sheetId: this.sheetId, dimension: dimension, startIndex: start - 1, endIndex: start - 1 + count },
+      properties: { pixelSize: px }, fields: 'pixelSize' } });
+  };
+  Sheet.prototype.setRowHeight = function (r, px) { this.dim('ROWS', r, 1, px); };
+  Sheet.prototype.setColumnWidth = function (c, px) { this.dim('COLUMNS', c, 1, px); };
+  Sheet.prototype.setColumnWidths = function (c, n, px) { this.dim('COLUMNS', c, n, px); };
+  Sheet.prototype.setConditionalFormatRules = function (rules) {
+    var o = ops(this.book).fmt, i;
+    for (i = 0; i < this.cf; i++) o.push({ deleteConditionalFormatRule: { sheetId: this.sheetId, index: 0 } });
+    for (i = 0; i < rules.length; i++) o.push({ addConditionalFormatRule: { rule: rules[i], index: i } });
+    this.cf = rules.length;
+  };
+
+  function Book(id) { this.id = id; this.sheets = []; this.readAt = 0; this.freshAt = 0; }
+  Book.prototype.getId = function () { return this.id; };
+  Book.prototype.getSpreadsheetTimeZone = function () { return 'Asia/Seoul'; };
+  Book.prototype.getSheets = function () { return this.sheets.slice(); };
+  Book.prototype.getSheetByName = function (n) {
+    for (var i = 0; i < this.sheets.length; i++) if (this.sheets[i].name === n) return this.sheets[i];
+    return null;
+  };
+  Book.prototype.insertSheet = function (name, index) {
+    var id = Math.floor(Math.random() * 2000000000) + 1;
+    if (index === undefined || index > this.sheets.length) index = this.sheets.length;
+    var p = { sheetId: id, title: name, index: index, gridProperties: { rowCount: 1000, columnCount: 26 } };
+    var sh = new Sheet(this, p, 0);
+    this.sheets.splice(index, 0, sh);
+    ops(this).struct.push({ addSheet: { properties: p } });
+    return sh;
+  };
+  Book.prototype.deleteSheet = function (sh) {
+    var i = this.sheets.indexOf(sh);
+    if (i >= 0) this.sheets.splice(i, 1);
+    ops(this).struct.push({ deleteSheet: { sheetId: sh.sheetId } });
+  };
+
+  function need(type, arg) { var e = new Error('need:' + type); e.need = type; e.arg = arg; return e; }
+
+  function ruleBuilder() {
+    var rule = { ranges: [], booleanRule: { condition: { type: 'TEXT_EQ', values: [] }, format: {} } }, f = rule.booleanRule.format;
+    var b = {
+      whenTextEqualTo: function (t) { rule.booleanRule.condition = { type: 'TEXT_EQ', values: [{ userEnteredValue: t }] }; return b; },
+      whenTextContains: function (t) { rule.booleanRule.condition = { type: 'TEXT_CONTAINS', values: [{ userEnteredValue: t }] }; return b; },
+      setBackground: function (c) { f.backgroundColor = color(c); return b; },
+      setFontColor: function (c) { f.textFormat = f.textFormat || {}; f.textFormat.foregroundColor = color(c); return b; },
+      setBold: function (v) { f.textFormat = f.textFormat || {}; f.textFormat.bold = !!v; return b; },
+      setRanges: function (rs) { rule.ranges = []; for (var i = 0; i < rs.length; i++) rule.ranges.push(rs[i].grid()); return b; },
+      build: function () { return rule; }
+    };
+    return b;
+  }
+
+  g.SpreadsheetApp = {
+    BorderStyle: { SOLID: 'SOLID' },
+    newConditionalFormatRule: ruleBuilder,
+    openById: function (id) {
+      var b = books[id], now = Date.now();
+      if (!b || now - b.freshAt > FRESH_MS || now - b.readAt > MAX_AGE_MS) throw need('load', id);
+      return b;
+    },
+    create: function (title) {
+      if (premade[title]) return premade[title];
+      throw need('create', title);
+    }
+  };
+
+  function loadBook(id) {
+    var meta;
+    return http('GET', SHEETS + '/' + id + '?fields=' + encodeURIComponent('sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)),conditionalFormats)'))
+      .then(function (m) {
+        meta = m.sheets || [];
+        var q = '';
+        for (var i = 0; i < meta.length; i++) q += '&ranges=' + encodeURIComponent(quote(meta[i].properties.title));
+        return http('GET', SHEETS + '/' + id + '/values:batchGet?valueRenderOption=FORMATTED_VALUE' + q);
+      }).then(function (v) {
+        var b = new Book(id), vr = v.valueRanges || [];
+        for (var i = 0; i < meta.length; i++) {
+          var sh = new Sheet(b, meta[i].properties, (meta[i].conditionalFormats || []).length);
+          sh.d = (vr[i] && vr[i].values) || [];
+          b.sheets.push(sh);
+        }
+        b.readAt = b.freshAt = Date.now();
+        books[id] = b;
+      });
+  }
+
+  function createBook(title) {
+    return http('POST', SHEETS, { properties: { title: title, locale: 'ko_KR', timeZone: 'Asia/Seoul' } }).then(function (r) {
+      var b = new Book(r.spreadsheetId), list = r.sheets || [];
+      for (var i = 0; i < list.length; i++) b.sheets.push(new Sheet(b, list[i].properties, 0));
+      b.readAt = b.freshAt = Date.now();
+      books[b.id] = b;
+      premade[title] = b;
+    });
+  }
+
+  /* ================= 학급 목록 (드라이브 파일 속성) ================= */
+
+  var classes = {}, listAt = 0, misc = {};
+
+  function loadList() {
+    var q = "appProperties has { key='oneRole' and value='1' } and trashed=false";
+    return http('GET', DRIVE + '?pageSize=200&fields=' + encodeURIComponent('files(id,appProperties)') + '&q=' + encodeURIComponent(q)).then(function (r) {
+      classes = {};
+      var f = r.files || [];
+      for (var i = 0; i < f.length; i++) {
+        var a = f[i].appProperties || {};
+        if (!a.code || classes[a.code]) continue;
+        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0' };
+      }
+      listAt = Date.now();
+    });
+  }
+
+  g.PropertiesService = { getScriptProperties: function () {
+    return {
+      getProperty: function (k) {
+        if (k.indexOf('class_') !== 0) return k in misc ? misc[k] : null;
+        var c = classes[k.slice(6)];
+        if (!c && Date.now() - listAt > 15000) throw need('list');
+        return c ? JSON.stringify(c) : null;
+      },
+      getProperties: function () {
+        var out = {};
+        for (var code in classes) out['class_' + code] = JSON.stringify(classes[code]);
+        return out;
+      },
+      setProperty: function (k, v) {
+        if (k.indexOf('class_') !== 0) { misc[k] = String(v); return; }
+        var code = k.slice(6), c = JSON.parse(v), prev = classes[code];
+        classes[code] = c;
+        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1' } });
+        if (prev && prev.sheetId !== c.sheetId) P.drive.push({ id: prev.sheetId, props: { oneRole: null, code: null } });
+      },
+      deleteProperty: function (k) {
+        if (k.indexOf('class_') !== 0) { delete misc[k]; return; }
+        var prev = classes[k.slice(6)];
+        if (prev) P.drive.push({ id: prev.sheetId, props: { oneRole: null, code: null } });
+        delete classes[k.slice(6)];
+      }
+    };
+  } };
+
+  /* ================= 그 밖에 Apps Script 가 주던 것 ================= */
+
+  function sha256(bytes) {
+    var K = [], H = [], i, j, n = 2, k = 0;
+    function frac(x) { return ((x - Math.floor(x)) * 4294967296) | 0; }
+    while (k < 64) {
+      var prime = true;
+      for (i = 2; i * i <= n; i++) if (n % i === 0) { prime = false; break; }
+      if (prime) { if (k < 8) H[k] = frac(Math.pow(n, 1 / 2)); K[k++] = frac(Math.pow(n, 1 / 3)); }
+      n++;
+    }
+    var len = bytes.length, msg = bytes.slice();
+    msg.push(128);
+    while (msg.length % 64 !== 56) msg.push(0);
+    var bits = len * 8;
+    msg.push(0, 0, 0, Math.floor(bits / 4294967296) & 255, (bits >>> 24) & 255, (bits >>> 16) & 255, (bits >>> 8) & 255, bits & 255);
+    var w = [];
+    function rr(x, s) { return (x >>> s) | (x << (32 - s)); }
+    for (var off = 0; off < msg.length; off += 64) {
+      for (i = 0; i < 16; i++) w[i] = (msg[off + i * 4] << 24) | (msg[off + i * 4 + 1] << 16) | (msg[off + i * 4 + 2] << 8) | msg[off + i * 4 + 3];
+      for (i = 16; i < 64; i++) {
+        var s0 = rr(w[i - 15], 7) ^ rr(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = rr(w[i - 2], 17) ^ rr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], gg = H[6], h = H[7];
+      for (i = 0; i < 64; i++) {
+        var t1 = (h + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & f) ^ (~e & gg)) + K[i] + w[i]) | 0;
+        var t2 = ((rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        h = gg; gg = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + gg) | 0; H[7] = (H[7] + h) | 0;
+    }
+    var out = [];
+    for (i = 0; i < 8; i++) for (j = 3; j >= 0; j--) { var v = (H[i] >>> (j * 8)) & 255; out.push(v > 127 ? v - 256 : v); }
+    return out;
+  }
+  g.__sha256 = sha256;
+
+  g.Utilities = {
+    DigestAlgorithm: { SHA_256: 1 }, Charset: { UTF_8: 1 },
+    sleep: function () {},
+    computeDigest: function (alg, text) {
+      var s = unescape(encodeURIComponent(String(text))), bytes = [];
+      for (var i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i));
+      return sha256(bytes);
+    },
+    // 한국 시간(UTC+9, 서머타임 없음) 기준
+    formatDate: function (d, tz, fmt) {
+      var iso = new Date((g.__NOW ? g.__NOW() : d.getTime()) + 9 * 3600000).toISOString();
+      return /HH/.test(fmt) ? iso.slice(0, 10) + ' ' + iso.slice(11, 16) : iso.slice(0, 10);
+    }
+  };
+  g.LockService = { getScriptLock: function () { return { waitLock: function () {}, releaseLock: function () {} }; } };
+  g.Logger = { log: function () {} };
+
+  /* ================= 실행과 저장 ================= */
+
+  function seq(list, fn) {
+    var p = Promise.resolve();
+    list.forEach(function (x) { p = p.then(function () { return fn(x); }); });
+    return p;
+  }
+
+  function flush(ctx) {
+    return seq(ctx.order, function (id) {
+      var o = ctx[id], base = SHEETS + '/' + id, p = Promise.resolve();
+      if (o.struct.length) p = p.then(function () { return http('POST', base + ':batchUpdate', { requests: o.struct }); });
+      if (o.values.length) p = p.then(function () { return http('POST', base + '/values:batchUpdate', { valueInputOption: 'RAW', data: o.values }); });
+      if (o.fmt.length) p = p.then(function () {
+        // 꾸밈은 실패해도 기록에는 지장이 없다. 다음에 다시 읽도록만 해 둔다.
+        return http('POST', base + ':batchUpdate', { requests: o.fmt }).catch(function (e) {
+          if (g.console) console.warn('시트 꾸미기 실패:', e.message);
+          g.__fmtError = e.message; o.book.freshAt = 0;
+        });
+      });
+      return p.then(function () { if (o.book.freshAt) o.book.freshAt = Date.now(); });
+    }).then(function () {
+      return seq(ctx.drive, function (d) { return http('PATCH', DRIVE + '/' + d.id, { appProperties: d.props }); });
+    });
+  }
+
+  function stale() { for (var id in books) books[id].freshAt = 0; }
+
+  function exec(name, args, tries) {
+    var pre = name === 'listClasses' ? loadList() : Promise.resolve();
+    return pre.then(function () {
+      var res;
+      P = { order: [], drive: [] };
+      try {
+        res = g[name].apply(null, JSON.parse(JSON.stringify(args)));
+      } catch (e) {
+        P = null;
+        if (e && e.need && tries < 8) {
+          var fix = e.need === 'load' ? loadBook(e.arg) : e.need === 'create' ? createBook(e.arg) : loadList();
+          return fix.then(function () { return exec(name, args, tries + 1); });
+        }
+        stale(); premade = {};
+        throw e;
+      }
+      var ctx = P; P = null; premade = {};
+      return flush(ctx).then(function () {
+        return res === undefined ? undefined : JSON.parse(JSON.stringify(res));
+      }, function (e) { stale(); throw e; });
+    });
+  }
+
+  var chain = Promise.resolve();
+  function run(name, args) {
+    var p = chain.then(function () { return exec(name, args, 0); });
+    chain = p.then(function () {}, function () {});
+    return p;
+  }
+
+  function runner(ok, fail) {
+    var o = {
+      withSuccessHandler: function (f) { return runner(f, fail); },
+      withFailureHandler: function (f) { return runner(ok, f); }
+    };
+    NAMES.forEach(function (n) {
+      o[n] = function () {
+        run(n, [].slice.call(arguments)).then(function (v) { if (ok) ok(v); }, function (e) { if (fail) fail(e); });
+      };
+    });
+    return o;
+  }
+  g.__RUN = function () { return runner(null, null); };
+
+  if (!CFG.clientId) g.addEventListener('load', function () { showLogin(''); });
+})(window);
+
+</script>
+<script>var BOOT = { c: (location.search.match(/[?&]c=([a-z0-9]+)/) || [])[1] || "", url: location.origin + location.pathname, web: true };</script>
+<script>
+(function(){
+'use strict';
+
+var S = { view:'load', code:'', st:null, classes:[], q:[], busy:false, pw:'', admin:null, tab:'roster', edit:[], rest:[], force:false };
+var app = document.getElementById('app');
+var WEEK = ['일','월','화','수','목','금','토'];
+var COLORS = ['#d8362b','#f39a2b','#f7cf3d','#5fae57','#4a90c9','#ef8fa8'];
+var EMOJI = ['🧽','✏️','📚','📋','🥛','🍚','🥄','🌱','🌻','💧','🚪','💡','🪟','🗑️','♻️','✨','👟','☂️','🎒','🪑','⏰','🔔','📢','🎵','🎨','⚽','🏃','🧴','🩹','📮','📏','🖍️','🐟','🐹','❤️','⭐'];
+var GUESS = [['문고','📚'],['창','🪟'],['칠판','🧽'],['우유','🥛'],['급식','🍚'],['수저','🥄'],['화분','🌱'],['식물','🌱'],['물','💧'],['문','🚪'],['불','💡'],['전등','💡'],
+  ['창','🪟'],['쓰레기','🗑️'],['분리','♻️'],['재활용','♻️'],['청소','✨'],['신발','👟'],['우산','☂️'],['가방','🎒'],['책상','🪑'],['의자','🪑'],
+  ['시간','⏰'],['알림','🔔'],['안내','📢'],['음악','🎵'],['미술','🎨'],['체육','⚽'],['줄','🏃'],['손','🧴'],['보건','🩹'],['우체','📮'],
+  ['책','📚'],['도서','📚'],['학습','✏️'],['연필','✏️'],['숙제','📋'],['검사','📋'],['물고기','🐟'],['동물','🐹'],['칭찬','❤️']];
+
+/* ---------- 도우미 ---------- */
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function api(fn, args, ok, fail){
+  var r = (window.__RUN ? window.__RUN() : google.script.run)
+    .withSuccessHandler(function(v){ if (ok) ok(v); })
+    .withFailureHandler(function(e){ var m = (e && e.message) || String(e); if (fail) fail(m); else toast(m); });
+  r[fn].apply(r, args || []);
+}
+function store(k, v){
+  try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch(e){}
+  return null;
+}
+var toastT;
+function toast(msg){
+  var old = document.querySelector('.toast'); if (old) old.parentNode.removeChild(old);
+  var d = document.createElement('div'); d.className = 'toast'; d.textContent = msg; document.body.appendChild(d);
+  clearTimeout(toastT); toastT = setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 3500);
+}
+function modal(html){
+  closeModal();
+  var d = document.createElement('div'); d.className = 'shade'; d.id = 'shade';
+  d.innerHTML = '<div class="modal">' + html + '</div>'; document.body.appendChild(d);
+  var f = d.querySelector('input'); if (f) f.focus();
+}
+function closeModal(){ var d = document.getElementById('shade'); if (d) d.parentNode.removeChild(d); }
+function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+function iconOf(s){
+  if (s.icon) return s.icon;
+  for (var i = 0; i < GUESS.length; i++) if ((s.role || '').indexOf(GUESS[i][0]) >= 0) return GUESS[i][1];
+  return '⭐';
+}
+function byNo(no){ var a = S.st ? S.st.students : []; for (var i = 0; i < a.length; i++) if (a[i].no === no) return a[i]; return null; }
+function localDay(){ var d = new Date(); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+
+/* ---------- 소리 ---------- */
+var AC = null;
+function audio(){
+  if (S.st && S.st.sound === false) return null;
+  try { if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (C) AC = new C(); } if (AC && AC.state === 'suspended') AC.resume(); } catch(e){ AC = null; }
+  return AC;
+}
+function tone(freq, t0, dur, type, vol, slideTo){
+  var a = audio(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + t0;
+  o.type = type || 'triangle'; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(vol || .25, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function sndStamp(){ tone(170, 0, .16, 'sine', .6, 45); tone(900, 0, .04, 'square', .05); }
+function sndDone(){ var n = [523, 659, 784, 1047]; for (var i = 0; i < n.length; i++) tone(n[i], .08 + i * .09, .3, 'triangle', .22); }
+function sndAll(){ var n = [523, 523, 659, 784, 659, 784, 1047]; for (var i = 0; i < n.length; i++) tone(n[i], .1 + i * .14, i === 6 ? .9 : .22, 'triangle', .25); }
+function sndUndo(){ tone(420, 0, .18, 'sine', .2, 180); }
+
+/* ---------- 색종이 ---------- */
+var cv = document.getElementById('fx'), cx = cv.getContext('2d'), parts = [], raf = 0;
+function sizeFx(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
+function burst(x, y, n, rain){
+  for (var i = 0; i < n; i++) {
+    var a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 9;
+    parts.push({
+      x: rain ? Math.random() * cv.width : x, y: rain ? -20 - Math.random() * cv.height * .6 : y,
+      vx: rain ? (Math.random() - .5) * 3 : Math.cos(a) * v, vy: rain ? 2 + Math.random() * 4 : Math.sin(a) * v - 5,
+      w: 8 + Math.random() * 10, h: 5 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
+      c: COLORS[i % COLORS.length], life: rain ? 260 : 70 + Math.random() * 30
+    });
+  }
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick(){
+  cx.clearRect(0, 0, cv.width, cv.height);
+  var keep = [];
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i];
+    p.vy += .32; p.vx *= .985; if (p.vy > 7) p.vy = 7;
+    p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life--;
+    if (p.life <= 0 || p.y > cv.height + 30) continue;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r);
+    cx.globalAlpha = Math.min(1, p.life / 20); cx.fillStyle = p.c;
+    cx.fillRect(-p.w / 2, -p.h / 2 * Math.cos(p.r * 2), p.w, p.h * Math.cos(p.r * 2));
+    cx.restore(); keep.push(p);
+  }
+  parts = keep;
+  raf = parts.length ? requestAnimationFrame(tick) : 0;
+  if (!raf) cx.clearRect(0, 0, cv.width, cv.height);
+}
+function banner(text, ms){
+  var d = document.createElement('div'); d.className = 'banner'; d.textContent = text; document.body.appendChild(d);
+  setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, ms || 2200);
+}
+
+/* ---------- 도장 그림 ---------- */
+function stampSvg(i, k, fresh){
+  var rot = ((i * 7 + k * 13) % 17) - 12;
+  return '<svg class="stamp' + (fresh ? ' new' : '') + '" viewBox="0 0 100 100" style="transform:rotate(' + rot + 'deg)">' +
+    '<circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="5"/>' +
+    '<circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
+    '<text font-size="14.5" fill="currentColor" text-anchor="middle" font-family="Jua,sans-serif"><textPath xlink:href="#arcTop" startOffset="50%">참 잘했어요</textPath></text>' +
+    '<circle cx="50" cy="57" r="15" fill="none" stroke="currentColor" stroke-width="3"/>' +
+    '<circle cx="44.5" cy="53" r="2.2" fill="currentColor"/><circle cx="55.5" cy="53" r="2.2" fill="currentColor"/>' +
+    '<path d="M42 60 Q50 69 58 60" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>' +
+    '<text x="50" y="87" font-size="9" fill="currentColor" text-anchor="middle">★ ★ ★</text></svg>';
+}
+
+/* 도장 손잡이가 내려와 꾹 찍고 올라가는 모션 */
+function press(r){
+  var w = Math.max(46, r.width * 1.12), h = w * 1.45;
+  var d = document.createElement('div'); d.className = 'presser';
+  d.style.cssText = 'left:' + (r.left + r.width / 2 - w / 2) + 'px;top:' + (r.top + r.height * .86 - h) + 'px;width:' + w + 'px;height:' + h + 'px';
+  d.innerHTML = '<svg viewBox="0 0 100 145"><g stroke="#2b2a28" stroke-width="4" stroke-linejoin="round">' +
+    '<rect x="39" y="40" width="22" height="46" fill="#c98a4b"/>' +
+    '<circle cx="50" cy="27" r="23" fill="#e0a25e"/>' +
+    '<path d="M14 82 h72 a8 8 0 0 1 8 8 v26 h-88 v-26 a8 8 0 0 1 8 -8 z" fill="#c98a4b"/>' +
+    '<rect x="4" y="116" width="92" height="20" rx="4" fill="#d8362b"/></g>' +
+    '<path d="M36 18 q8 -9 18 -5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".7"/></svg>';
+  document.body.appendChild(d);
+  setTimeout(function(){ if (d.parentNode) d.parentNode.removeChild(d); }, 680);
+}
+
+/* ---------- 처음 화면: 학급 고르기 ---------- */
+function showPick(){
+  S.view = 'pick'; S.code = ''; S.st = null;
+  app.innerHTML = '<div class="center"><h2>잠깐만요…</h2></div>';
+  api('listClasses', [], function(list){ S.classes = list || []; renderPick(); },
+    function(m){ app.innerHTML = '<div class="center"><h2>앗!</h2><p class="hand">' + esc(m) + '</p><button class="btn yellow" data-act="reload">다시 시도</button></div>'; });
+}
+function renderPick(){
+  var h = '<div class="center"><h2 class="title" style="margin:0 0 6px;font-size:54px">우리 반 <em>1인 1역</em></h2>';
+  h += '<p class="hand">' + (S.classes.length ? '우리 반 이름표를 눌러 주세요' : '아직 만든 학급이 없어요') + '</p><div class="tags">';
+  for (var i = 0; i < S.classes.length; i++)
+    h += '<button class="btn" style="background:' + ['#ffd6cb','#fff0a3','#d3edc4','#cbe4f6','#f9cfde','#ffe4b8'][i % 6] + ';transform:rotate(' + ((i % 3) - 1) * 1.5 + 'deg)" data-act="open" data-code="' + esc(S.classes[i].code) + '">' + esc(S.classes[i].name) + '</button>';
+  h += '</div><button class="btn small" data-act="newclass">+ 새 학급 만들기 (선생님)</button></div>';
+  app.innerHTML = h;
+}
+function newClassModal(){
+  modal('<h3>새 학급 만들기</h3>' +
+    '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
+    (BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
+    '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
+    '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
+    '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
+    '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="createclass">만들기</button></div>');
+}
+
+/* ---------- 칠판 화면 ---------- */
+function openClass(code){
+  S.code = code; S.view = 'board'; S.force = false;
+  app.innerHTML = '<div class="center"><h2>불러오는 중…</h2></div>';
+  api('getState', [code], function(st){ store('c', code); setState(st); render(); },
+    function(m){ store('c', null); toast(m); showPick(); });
+}
+function setState(st){
+  S.st = st; S.day = localDay(); S.loaded = Date.now();
+  for (var i = 0; i < st.students.length; i++) st.students[i].base = st.students[i].done >= st.students[i].target && !st.students[i].absent;
+}
+function refresh(){
+  if (!S.code || S.q.length || S.busy) return;
+  api('getState', [S.code], function(st){
+    if (S.q.length || S.busy) return;
+    setState(st);
+    if (S.view === 'board' || S.view === 'stickers') render();
+  }, function(){});
+}
+function streakNow(s){ return s.streak + (s.done >= s.target && !s.absent ? 1 : 0); }
+function counts(){
+  var a = S.st.students, n = 0, d = 0;
+  for (var i = 0; i < a.length; i++) { if (a[i].absent) continue; n++; if (a[i].done >= a[i].target) d++; }
+  return { n: n, d: d };
+}
+function topHtml(right){
+  var st = S.st, p = st.today.split('-');
+  return '<div class="top"><div class="cal' + (st.dow === 0 || st.dow === 6 ? ' sun' : '') + '"><div class="m">' + (+p[1]) + '월</div><div class="d">' + (+p[2]) +
+    '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="clock" id="clock">' + clockHtml() + '</div><div class="grow"></div>' + right + '</div>';
+}
+function clockHtml(){
+  var d = new Date(), h = d.getHours(), m = d.getMinutes();
+  return '<small>' + (h < 12 ? '오전' : '오후') + '</small>' + (h % 12 || 12) + '<i>:</i>' + (m < 10 ? '0' : '') + m;
+}
+var clockMin = -1;
+setInterval(function(){
+  var c = document.getElementById('clock'), m = new Date().getMinutes();
+  if (c && m !== clockMin) { clockMin = m; c.innerHTML = clockHtml(); }
+}, 1000);
+function cardHtml(s, i){
+  var tilt = (((i * 37) % 7) - 3) * .45;
+  var cls = 'card c' + (i % 6) + ' t' + s.target + (s.absent ? ' absent' : '') + (s.done > 0 && !s.absent ? ' some' : '');
+  var h = '<div class="' + cls + '" id="card-' + i + '" data-act="stamp" data-i="' + i + '" style="transform:rotate(' + tilt + 'deg)">';
+  h += '<span class="no">' + esc(s.no) + '</span><div class="name' + (s.name.length > 4 ? ' long' : '') + '">' + esc(s.name) + '</div>';
+  h += '<div class="role hand"><i>' + esc(iconOf(s)) + '</i>' + esc(s.role || '역할을 정해요') + '</div>';
+  h += '<div class="slots" id="slots-' + i + '">' + slotsHtml(s, i, -1) + '</div>';
+  h += '<button class="undo" data-act="undo" data-i="' + i + '">지우기</button>';
+  var k = streakNow(s);
+  if (k >= 2 && !s.absent) h += '<span class="streak">' + k + '일 연속!</span>';
+  return h + '</div>';
+}
+function slotsHtml(s, i, fresh){
+  if (s.absent) return '<span class="hand">결석</span>';
+  var h = '';
+  for (var k = 0; k < s.target; k++)
+    h += '<span class="slot' + (k < s.done ? ' on' : '') + '">' + (k < s.done ? stampSvg(i, k, k === fresh) : '<b>꾹</b>') + '</span>';
+  return h;
+}
+function renderBoard(){
+  var st = S.st, a = st.students, c = counts();
+  var right = '<span class="net" id="net"></span><div class="prog"><span class="lab">다 한 친구</span><div class="bar"><i id="bar"></i></div><span class="num" id="num"></span></div>' +
+    '<button class="btn green" data-act="stickers">스티커판</button><button class="btn small" data-act="settings">설정</button>';
+  var h = topHtml(right);
+  if (st.rest && !S.force) {
+    h += '<div class="center" style="min-height:60vh"><h2>오늘은 쉬는 날이에요</h2><p class="hand">' + esc(st.rest) + ' · 푹 쉬고 다음에 만나요!</p>' +
+      '<button class="btn plain small" data-act="force">그래도 오늘 기록하기</button></div>';
+  } else if (!a.length) {
+    h += '<div class="center" style="min-height:60vh"><h2>아직 이름표가 없어요</h2><p class="hand">선생님이 [설정]에서 친구들과 역할을 넣어 주세요</p></div>';
+  } else {
+    h += '<div class="grid" id="grid">';
+    for (var i = 0; i < a.length; i++) h += cardHtml(a[i], i);
+    h += '</div>';
+  }
+  app.innerHTML = h;
+  fit(); prog(c); netShow();
+}
+function prog(c){
+  c = c || counts();
+  var bar = document.getElementById('bar'), num = document.getElementById('num');
+  if (!bar) return;
+  var pct = c.n ? Math.round(c.d / c.n * 100) : 0;
+  bar.style.width = pct + '%'; bar.className = pct === 0 || pct === 100 ? 'zero' : '';
+  num.textContent = c.d + ' / ' + c.n;
+}
+function fit(){
+  var g = document.getElementById('grid'); if (!g) return;
+  var n = S.st.students.length, W = g.clientWidth - 20, H = window.innerHeight - g.offsetTop - 22, best = 0;
+  for (var cols = 1; cols <= 12; cols++) {
+    var fs = Math.min(34, W / cols / 12.9), rows = Math.ceil(n / cols);
+    if (rows * fs * 10.1 <= H) { best = fs; break; }
+    best = fs;
+  }
+  g.style.fontSize = Math.max(Math.min(13, W / 2 / 12.9), best) + 'px';
+}
+function redrawCard(i, fresh){
+  var s = S.st.students[i], el = document.getElementById('card-' + i); if (!el) return;
+  var d = document.createElement('div'); d.innerHTML = cardHtml(s, i);
+  var nu = d.firstChild; el.parentNode.replaceChild(nu, el);
+  if (fresh >= 0) document.getElementById('slots-' + i).innerHTML = slotsHtml(s, i, fresh);
+  return nu;
+}
+function stamp(i){
+  var s = S.st.students[i]; if (!s) return;
+  var el = document.getElementById('card-' + i);
+  if (s.absent) { toast('결석으로 표시된 친구예요. 선생님께 말씀드려요.'); return; }
+  if (s.done >= s.target) {
+    el.className += ' shake'; setTimeout(function(){ el.className = el.className.replace(' shake', ''); }, 400);
+    return;
+  }
+  s.done++;
+  var nu = redrawCard(i, s.done - 1), r = nu.getBoundingClientRect();
+  var sr = nu.querySelectorAll('.slot')[s.done - 1].getBoundingClientRect();
+  press(sr);
+  setTimeout(function(){
+    sndStamp();
+    burst(sr.left + sr.width / 2, sr.top + sr.height / 2, 14);
+    var el2 = document.getElementById('card-' + i);
+    if (el2) { el2.className += ' hit'; setTimeout(function(){ el2.className = el2.className.replace(' hit', ''); }, 320); }
+  }, 200);
+  push(s.no, 1);
+  var c = counts(); prog(c);
+  if (s.done >= s.target) {
+    setTimeout(function(){ sndDone(); burst(r.left + r.width / 2, r.top + r.height / 2, 50); }, 330);
+    var k = streakNow(s);
+    if (c.n && c.d === c.n) {
+      setTimeout(function(){ sndAll(); burst(0, 0, 260, true); banner('우리 반 모두 해냈어요!', 3600); }, 750);
+    } else if (k >= 3 && k % 5 === 0) {
+      banner(s.name + ' ' + k + '일 연속!', 2200);
+    }
+  }
+}
+function undo(i){
+  var s = S.st.students[i]; if (!s || s.done <= 0) return;
+  s.done--; redrawCard(i, -1); sndUndo(); push(s.no, -1); prog();
+}
+
+/* ---------- 저장 줄 세우기 ---------- */
+function push(no, delta){ S.q.push({ no: no, delta: delta, date: S.st.today }); pump(); }
+function pump(){
+  netShow();
+  if (S.busy || !S.q.length) return;
+  S.busy = true;
+  var op = S.q[0];
+  api('record', [S.code, op.no, op.delta, op.date], function(res){
+    S.busy = false; S.bad = false; S.q.shift();
+    if (res && res.stale) { S.q = []; netShow(); toast('날짜나 명단이 바뀌어서 새로 불러올게요.'); refresh(); return; }
+    pump();
+  }, function(){
+    S.busy = false; S.bad = true; netShow();
+    setTimeout(pump, 4000);
+  });
+}
+function netShow(){
+  var n = document.getElementById('net'); if (!n) return;
+  if (S.bad && S.q.length) { n.className = 'net show bad'; n.textContent = '인터넷 확인! 다시 저장하는 중'; }
+  else if (S.q.length) { n.className = 'net show'; n.textContent = '저장 중…'; }
+  else n.className = 'net';
+}
+
+/* ---------- 스티커판 ---------- */
+function renderStickers(){
+  var st = S.st, a = st.students;
+  var h = topHtml('<button class="btn yellow" data-act="board">← 이름표로</button>');
+  h += '<div class="wrap"><table class="st"><tr><th style="text-align:left;padding-left:14px">이번 주 스티커판</th>';
+  for (var j = 0; j < st.week.length; j++) {
+    var p = st.week[j].date.split('-');
+    h += '<th' + (st.week[j].rest ? ' class="rest"' : '') + '>' + WEEK[j + 1] + '<br><small>' + (+p[1]) + '/' + (+p[2]) + '</small></th>';
+  }
+  h += '<th>연속</th><th>이번 달</th><th>모은 스티커</th></tr>';
+  for (var i = 0; i < a.length; i++) {
+    var s = a[i], full = s.done >= s.target && !s.absent;
+    h += '<tr><td class="nm">' + esc(s.no) + '. ' + esc(s.name) + '<small>' + esc(iconOf(s)) + ' ' + esc(s.role) + '</small></td>';
+    for (var k = 0; k < st.week.length; k++) {
+      var w = s.week[k];
+      if (st.week[k].date === st.today) w = s.absent ? 'absent' : full ? 'full' : s.done > 0 ? 'part' : (st.rest ? 'rest' : 'none');
+      var inner = w === 'full' ? '★' : w === 'part' ? '·' : w === 'absent' ? '결석' : '';
+      h += '<td><span class="dot ' + w + '"' + (w === 'full' ? ' style="background:' + COLORS[(i + k) % 6] + '"' : '') + '>' + inner + '</span></td>';
+    }
+    var add = (full ? 1 : 0) - (s.base ? 1 : 0);
+    var sk = streakNow(s);
+    h += '<td>' + (sk >= 2 ? sk + '일' : '') + '</td><td>' + (s.monthFull + add) + '<small style="opacity:.6"> / ' + Math.max(s.monthDays, s.monthFull + add) + '일</small></td><td>' + (s.total + add) + '개</td></tr>';
+  }
+  h += '</table><p class="legend hand"><span class="dot full" style="background:#f39a2b">★</span>다 했어요<span class="dot part">·</span>조금 했어요<span class="dot none"></span>아직</p></div>';
+  app.innerHTML = h;
+}
+
+/* ---------- 설정 ---------- */
+function askPw(){
+  modal('<h3>선생님 비밀번호</h3><input class="in" id="pw" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
+    '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="login">확인</button></div>');
+}
+function login(){
+  var pw = val('pw'); if (!pw) return;
+  api('auth', [S.code, pw], function(ad){
+    closeModal(); S.pw = pw; S.admin = ad; setState(ad.state);
+    S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest));
+    S.view = 'settings'; S.tab = 'roster'; render();
+  });
+}
+function renderSettings(){
+  var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['class','시트 · 비밀번호']];
+  var h = '<div class="top"><h1 class="title" style="margin-left:0">' + esc(S.st.name) + ' <em>설정</em></h1><div class="grow"></div><button class="btn yellow" data-act="board">← 칠판으로</button></div><div class="wrap"><div class="tabs">';
+  for (var i = 0; i < tabs.length; i++) h += '<button class="btn' + (S.tab === tabs[i][0] ? ' on' : '') + '" data-act="tab" data-tab="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
+  h += '</div><div class="sheet">';
+  if (S.tab === 'roster') {
+    h += '<h3>친구와 역할</h3><p class="note">같은 역할을 두 명이 맡으면 두 줄에 똑같이 적으면 돼요. 횟수는 하루에 도장을 몇 번 찍는지예요. 스프레드시트의 [명단] 시트에서 직접 고쳐도 됩니다.</p>';
+    h += '<div class="row rowhead"><span class="w-no" style="text-align:center">번호</span><span class="w-name">이름</span><span class="w-role">역할</span><span style="width:52px">그림</span><span class="cnt">하루</span><span style="width:44px"></span></div>';
+    for (var r = 0; r < S.edit.length; r++) {
+      var e = S.edit[r];
+      h += '<div class="row"><input class="in w-no" data-f="no" data-i="' + r + '" value="' + esc(e.no) + '" maxlength="6" inputmode="numeric">' +
+        '<input class="in w-name" data-f="name" data-i="' + r + '" value="' + esc(e.name) + '" maxlength="12" placeholder="이름">' +
+        '<input class="in w-role" data-f="role" data-i="' + r + '" value="' + esc(e.role) + '" maxlength="20" placeholder="역할">' +
+        '<button class="ico" data-act="emoji" data-i="' + r + '">' + esc(iconOf(e)) + '</button>' +
+        '<button class="btn small cnt" data-act="cnt" data-i="' + r + '">' + e.target + '번</button>' +
+        '<button class="btn small" data-act="delrow" data-i="' + r + '">✕</button></div>';
+    }
+    h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrow">+ 친구 추가</button><span class="grow"></span><button class="btn yellow" data-act="saveroster">저장하기</button></div>';
+  } else if (S.tab === 'absent') {
+    h += '<h3>오늘 결석한 친구</h3><p class="note">이름을 누르면 결석으로 바뀌어요. 결석한 날은 스티커 통계에서 빠집니다.</p><div class="chips">';
+    for (var a = 0; a < S.st.students.length; a++) {
+      var s = S.st.students[a];
+      h += '<button class="btn' + (s.absent ? ' on' : '') + '" data-act="absent" data-i="' + a + '">' + esc(s.no) + '. ' + esc(s.name) + (s.absent ? ' (결석)' : '') + '</button>';
+    }
+    h += '</div>' + (S.st.students.length ? '' : '<p class="note">먼저 친구를 추가해 주세요.</p>');
+  } else if (S.tab === 'rest') {
+    h += '<h3>쉬는 날</h3><p class="note">토요일과 일요일은 자동으로 쉬어요. 공휴일, 재량휴업일, 방학을 넣어 주세요. 하루만 쉬면 끝 날짜는 비워 두세요.</p>';
+    for (var d = 0; d < S.rest.length; d++) {
+      var x = S.rest[d];
+      h += '<div class="row"><input class="in w-date" type="date" data-g="start" data-i="' + d + '" value="' + esc(x.start) + '">' +
+        '<span>~</span><input class="in w-date" type="date" data-g="end" data-i="' + d + '" value="' + esc(x.end === x.start ? '' : x.end) + '">' +
+        '<input class="in w-role" data-g="name" data-i="' + d + '" value="' + esc(x.name) + '" maxlength="20" placeholder="예: 여름방학">' +
+        '<button class="btn small" data-act="delrest" data-i="' + d + '">✕</button></div>';
+    }
+    h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrest">+ 쉬는 날 추가</button><span class="grow"></span><button class="btn yellow" data-act="saverest">저장하기</button></div>';
+  } else {
+    var ad = S.admin;
+    h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요.' +
+      (BOOT.web ? '' : ' 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.') + '</p><div class="field">' +
+      (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
+      '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
+      '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
+      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
+        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '') +
+      '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
+      '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
+      '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
+      (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
+      '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
+  }
+  app.innerHTML = h + '</div></div>';
+}
+function adminCall(fn, extra, ok){ api(fn, [S.code, S.pw].concat(extra), ok); }
+
+/* ---------- 그리기 ---------- */
+function render(){
+  if (S.view === 'board') renderBoard();
+  else if (S.view === 'stickers') renderStickers();
+  else if (S.view === 'settings') renderSettings();
+}
+
+/* ---------- 누르기 ---------- */
+function act(a, el){
+  var i = +el.getAttribute('data-i');
+  switch (a) {
+    case 'reload': showPick(); break;
+    case 'open': openClass(el.getAttribute('data-code')); break;
+    case 'newclass': newClassModal(); break;
+    case 'close': closeModal(); break;
+    case 'createclass':
+      el.disabled = true;
+      api('createClass', [val('nc-name'), val('nc-url'), val('nc-pw')], function(r){ closeModal(); openClass(r.code); toast('학급을 만들었어요. [설정]에서 친구들을 넣어 주세요.'); },
+        function(m){ el.disabled = false; toast(m); });
+      break;
+    case 'stamp': stamp(i); break;
+    case 'undo': undo(i); break;
+    case 'force': S.force = true; render(); break;
+    case 'stickers': S.view = 'stickers'; render(); break;
+    case 'board': S.view = 'board'; S.pw = ''; S.admin = null; render(); break;
+    case 'settings': askPw(); break;
+    case 'login': login(); break;
+    case 'tab': S.tab = el.getAttribute('data-tab'); render(); break;
+    case 'addrow':
+      var mx = 0; for (var k = 0; k < S.edit.length; k++) mx = Math.max(mx, parseInt(S.edit[k].no, 10) || 0);
+      S.edit.push({ no: String(mx + 1), name: '', role: '', icon: '', target: 1 }); render();
+      var ins = app.querySelectorAll('input[data-f="name"]'); if (ins.length) ins[ins.length - 1].focus();
+      break;
+    case 'delrow': S.edit.splice(i, 1); render(); break;
+    case 'cnt': S.edit[i].target = S.edit[i].target % 5 + 1; render(); break;
+    case 'emoji':
+      var h = '<h3>그림 고르기</h3><div class="emo">';
+      for (var e = 0; e < EMOJI.length; e++) h += '<button data-act="pickemoji" data-i="' + i + '" data-e="' + EMOJI[e] + '">' + EMOJI[e] + '</button>';
+      modal(h + '</div><div class="btns"><button class="btn" data-act="pickemoji" data-i="' + i + '" data-e="">자동으로</button><button class="btn" data-act="close">닫기</button></div>');
+      break;
+    case 'pickemoji': S.edit[i].icon = el.getAttribute('data-e'); closeModal(); render(); break;
+    case 'saveroster':
+      adminCall('saveRoster', [S.edit], function(st){ setState(st); S.edit = rosterOf(st); render(); toast('저장했어요.'); });
+      break;
+    case 'absent':
+      var s = S.st.students[i];
+      adminCall('setAbsent', [s.no, !s.absent, S.st.today], function(r){
+        if (r && r.stale) { toast('날짜가 바뀌었어요. 새로 불러옵니다.'); refresh(); return; }
+        s.absent = r.absent; s.done = r.done; render();
+      });
+      break;
+    case 'addrest': S.rest.push({ start: S.st.today, end: S.st.today, name: '' }); render(); break;
+    case 'delrest': S.rest.splice(i, 1); render(); break;
+    case 'saverest': adminCall('saveRest', [S.rest], function(st){ setState(st); render(); toast('저장했어요.'); }); break;
+    case 'newsheet':
+      modal('<h3>새 스프레드시트를 만들까요?</h3><p class="hand" style="font-size:19px">새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.</p>' +
+        '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="newsheet2">만들기</button></div>');
+      break;
+    case 'newsheet2':
+      el.disabled = true;
+      adminCall('updateClass', [{ newSheet: true }], function(r){
+        closeModal(); toast('새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
+        api('auth', [S.code, S.pw], function(ad){ S.admin = ad; setState(ad.state); S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest)); render(); });
+      });
+      break;
+    case 'savesheet':
+      if (!val('s-url')) { toast('새 주소를 붙여 넣어 주세요.'); break; }
+      adminCall('updateClass', [{ sheetUrl: val('s-url') }], function(r){
+        S.admin.sheetUrl = r.sheetUrl; toast(r.copied ? '시트를 바꾸고 명단을 옮겼어요.' : '시트를 바꿨어요.');
+        api('auth', [S.code, S.pw], function(ad){ S.admin = ad; setState(ad.state); S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest)); render(); });
+      });
+      break;
+    case 'savename': adminCall('updateClass', [{ name: val('s-name') }], function(r){ S.admin.name = r.name; S.st.name = r.name; render(); toast('이름을 바꿨어요.'); }); break;
+    case 'savepw':
+      var np = val('s-pw');
+      adminCall('updateClass', [{ newPw: np }], function(){ S.pw = np; render(); toast('비밀번호를 바꿨어요.'); });
+      break;
+    case 'sound': adminCall('updateClass', [{ sound: !S.admin.sound }], function(r){ S.admin.sound = r.sound; S.st.sound = r.sound; render(); }); break;
+    case 'pick': store('c', null); S.pw = ''; showPick(); break;
+    case 'logout': store('c', null); S.pw = ''; S.admin = null; window.ONE_ROLE.logout(); showPick(); break;
+    case 'delclass':
+      modal('<h3>이 학급을 지울까요?</h3><p class="hand" style="font-size:19px">학급 목록에서만 사라지고, 스프레드시트와 기록은 그대로 남아요.</p>' +
+        '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn red" data-act="delclass2">지우기</button></div>');
+      break;
+    case 'delclass2': adminCall('deleteClass', [], function(){ closeModal(); store('c', null); S.pw = ''; showPick(); }); break;
+  }
+}
+function rosterOf(st){
+  var out = [];
+  for (var i = 0; i < st.students.length; i++) { var s = st.students[i]; out.push({ no: s.no, name: s.name, role: s.role, icon: s.icon, target: s.target }); }
+  return out;
+}
+
+document.addEventListener('click', function(ev){
+  var t = ev.target;
+  if (t.id === 'shade') { closeModal(); return; }
+  while (t && t !== document) {
+    var a = t.getAttribute && t.getAttribute('data-act');
+    if (a) { act(a, t); return; }
+    t = t.parentNode;
+  }
+});
+document.addEventListener('input', function(ev){
+  var t = ev.target, i = +t.getAttribute('data-i'), f = t.getAttribute('data-f'), g = t.getAttribute('data-g');
+  if (f && S.edit[i]) S.edit[i][f] = t.value;
+  if (g && S.rest[i]) S.rest[i][g] = t.value;
+});
+document.addEventListener('keydown', function(ev){
+  if (ev.keyCode !== 13) return;
+  if (ev.target.id === 'pw') login();
+});
+window.addEventListener('resize', function(){ sizeFx(); fit(); });
+
+// 날짜가 바뀌면 바로, 그 밖에는 10분마다 새로 불러온다.
+setInterval(function(){
+  if (S.view !== 'board' && S.view !== 'stickers') return;
+  if (!S.st) return;
+  if (S.day !== localDay() || Date.now() - S.loaded > 10 * 60 * 1000) refresh();
+}, 30000);
+
+sizeFx();
+var start = BOOT.c || store('c');
+if (start) openClass(start); else showPick();
+})();
+</script>
+</body>
+</html>
