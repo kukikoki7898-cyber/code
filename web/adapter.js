@@ -101,7 +101,9 @@
   }
 
   /* ----- 저장 방식: 'google' = 구글 로그인 + 구글 시트, 'local' = 로그인 없이 이 기기의 브라우저에만 ----- */
-  var mode = ls('or_mode') || '', modeWaiters = [];
+  // 처음 여는 사람은 아무것도 고르지 않고 바로 쓴다(기기 저장). 구글 시트 방식은 설정에서 고를 때만 묻는다.
+  var mode = ls('or_mode') || 'local', modeWaiters = [];
+  if (mode === 'choose') mode = '';
   function isLocal() { return mode === 'local'; }
   function setMode(m) {
     mode = m; ls('or_mode', m); hideLogin();
@@ -125,11 +127,11 @@
       'border-radius:14px;box-shadow:3px 4px 0 rgba(43,42,40,.22);';
     d.innerHTML = '<div style="background:#fffdf6;border:3px solid #2b2a28;border-radius:14px 22px 16px 24px / 22px 14px 24px 16px;padding:24px;max-width:520px;width:100%;box-shadow:6px 8px 0 rgba(43,42,40,.3)">' +
       '<div style="font-size:27px;text-align:center">기록을 어디에 저장할까요?</div>' +
-      '<button id="or-local" style="' + card + 'background:#f7cf3d"><span style="font-size:22px">바로 시작하기 <small style="font-size:15px">(로그인 없음)</small></span>' +
+      '<button id="or-local" style="' + card + 'background:#f7cf3d"><span style="font-size:22px">이 기기에 저장하기 <small style="font-size:15px">(로그인 없음 · 추천)</small></span>' +
       '<br><span style="font:15px/1.5 sans-serif">이 기기의 브라우저에만 저장해요. 다른 기기에서는 볼 수 없고, 엑셀 파일로 내려받을 수 있어요.</span></button>' +
       (CFG.clientId ? '<button id="or-google" style="' + card + 'background:#fff"><span style="font-size:22px">구글 시트에 저장하기 <small style="font-size:15px">(구글 로그인)</small></span>' +
       '<br><span style="font:15px/1.5 sans-serif">내 구글 드라이브의 스프레드시트에 저장해요. 어느 기기에서든 로그인하면 이어서 쓸 수 있어요.</span></button>' : '') +
-      '<div style="margin-top:14px;font:12px sans-serif;color:#999;text-align:center">나중에 설정에서 바꿀 수 있어요 · 버전 ' + (g.ONE_ROLE_BUILD || '-') + '</div></div>';
+      '<div style="margin-top:14px;font:12px sans-serif;color:#999;text-align:center">언제든 다시 바꿀 수 있어요 · 버전 ' + (g.ONE_ROLE_BUILD || '-') + '</div></div>';
     document.getElementById('or-local').onclick = function () { setMode('local'); };
     var gg = document.getElementById('or-google');
     if (gg) gg.onclick = function () { setMode('google'); requestToken(false); };
@@ -187,7 +189,7 @@
     },
     local: isLocal,
     // 저장 방식을 다시 고르게 한다. 이미 저장된 기록은 그대로 남는다.
-    changeMode: function () { ls('or_mode', null); ls('c', null); g.location.reload(); },
+    changeMode: function () { ls('or_mode', 'choose'); ls('c', null); g.location.reload(); },
     // 시트 한 장을 엑셀에서 열리는 CSV 글자로 돌려준다. (불러와 둔 학급만)
     csv: function (code, sheetName) {
       var c = classes[code], b = c && books[c.sheetId], sh = b && b.getSheetByName(sheetName);
