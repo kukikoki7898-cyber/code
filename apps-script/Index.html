@@ -374,6 +374,7 @@ function renderPick(){
   for (var i = 0; i < S.classes.length; i++)
     h += '<button class="btn" style="background:' + ['#ffd6cb','#fff0a3','#d3edc4','#cbe4f6','#f9cfde','#ffe4b8'][i % 6] + ';transform:rotate(' + ((i % 3) - 1) * 1.5 + 'deg)" data-act="open" data-code="' + esc(S.classes[i].code) + '">' + esc(S.classes[i].name) + '</button>';
   h += '</div><button class="btn ' + (S.classes.length ? 'small' : 'yellow') + '" data-act="newclass">+ 새 학급 만들기 (선생님)</button></div>';
+  if (BOOT.web && window.ONE_ROLE) h = h.replace(/<\/div>$/, '<div style="margin-top:14px"><button class="btn plain small" data-act="mode">저장 방식 바꾸기 (지금: ' + (isLocal() ? '이 기기에 저장' : '구글 시트') + ')</button></div></div>');
   app.innerHTML = h;
   if (!S.classes.length) newClassModal();
 }
