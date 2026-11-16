@@ -1,0 +1,9 @@
+{
+  "name": "우리 반 1인 1역",
+  "short_name": "1인 1역",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#f6ecd2",
+  "theme_color": "#f6ecd2",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

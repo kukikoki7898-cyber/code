@@ -20,7 +20,8 @@ var parts = [
   '<script>var BOOT = { c: (location.search.match(/[?&]c=([a-z0-9]+)/) || [])[1] || "", url: location.origin + location.pathname, web: true };</script>'
 ];
 html = html.replace(boot, function () { return parts.join('\n'); });
-html = html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>우리 반 1인 1역</title>');
+html = html.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>우리 반 1인 1역</title>' +
+  (mock ? '' : '\n<link rel="manifest" href="manifest.json">\n<link rel="icon" href="icon.svg">\n<meta name="theme-color" content="#f6ecd2">'));
 
 if (mock) {
   fs.writeFileSync(process.argv[mi + 1], html);

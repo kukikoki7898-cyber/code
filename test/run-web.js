@@ -35,26 +35,18 @@ var assert = require('assert');
   assert.equal(await pg.locator('#or-login').count(), 0);
 
   // 2. 학급 만들기: 드라이브에 파일이 생기고 꼬리표가 붙는다. 주소 입력칸은 없다.
-  await pg.click('[data-act=newclass]');
+  await pg.waitForSelector('#nc-name');
   assert.equal(await pg.locator('#nc-url').count(), 0);
   await pg.fill('#nc-name', '3학년 5반'); await pg.fill('#nc-pw', '1234');
   await pg.click('[data-act=createclass]');
-  await pg.waitForFunction(function () { var t = document.querySelector('.center h2'); return t && /이름표가 없어요/.test(t.textContent); });
+  await pg.waitForSelector('#bulk');
   var t1 = await tagged();
   assert.equal(t1.length, 1); assert.equal(t1[0].p.name, '3학년 5반'); assert.equal(t1[0].p.pw.length, 64);
   assert.deepEqual(t1[0].sheets, ['요약', '기록', '명단', '쉬는날']);
 
-  // 3. 설정에서 친구 넣기
-  await pg.click('[data-act=settings]'); await pg.fill('#pw', '0000'); await pg.click('[data-act=login]');
-  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /비밀번호/.test(t.textContent); });
-  await pg.fill('#pw', '1234'); await pg.click('[data-act=login]');
-  await pg.waitForSelector('.tabs');
-  var people = [['가람', '칠판 지우기'], ['나래', '우유 나르기'], ['다온', '화분 물 주기']];
-  for (var i = 0; i < people.length; i++) {
-    await pg.click('[data-act=addrow]');
-    await pg.fill('input[data-f=name][data-i="' + i + '"]', people[i][0]);
-    await pg.fill('input[data-f=role][data-i="' + i + '"]', people[i][1]);
-  }
+  // 3. 만들자마자 뜨는 창에 명단 붙여 넣기
+  await pg.fill('#bulk', '가람 칠판 지우기\n나래 우유 나르기\n다온 화분 물 주기');
+  await pg.click('[data-act=bulkset]');
   await pg.click('[data-act=cnt][data-i="0"]'); await pg.click('[data-act=cnt][data-i="0"]');
   await pg.click('[data-act=saveroster]');
   await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
@@ -122,7 +114,9 @@ var assert = require('assert');
 
   // 9. 새 스프레드시트로 바꾸기: 새 파일에 꼬리표가 옮겨 가고 명단이 따라간다
   var oldId = (await tagged())[0].id;
-  await pg.click('[data-act=settings]'); await pg.fill('#pw', '1234'); await pg.click('[data-act=login]');
+  await pg.click('[data-act=settings]'); await pg.fill('#pw', '0000'); await pg.click('[data-act=login]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /비밀번호/.test(t.textContent); });
+  await pg.fill('#pw', '1234'); await pg.click('[data-act=login]');
   await pg.waitForSelector('.tabs');
   await pg.click('[data-act=tab][data-tab=class]');
   await pg.click('[data-act=newsheet]'); await pg.click('[data-act=newsheet2]');

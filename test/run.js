@@ -177,7 +177,19 @@ var assert = require('assert');
   await pg.fill('#nc-name', '1학년 1반'); await pg.fill('#nc-pw', '9999');
   await pg.screenshot({ path: shots + '/pick.png' });
   await pg.click('[data-act=createclass]');
-  await pg.waitForFunction(function () { var t = document.querySelector('.center h2'); return t && /이름표가 없어요/.test(t.textContent); });
+  // 만들자마자 명단 붙여 넣기 창이 뜬다. 여러 모양의 줄을 알아듣는지 확인
+  await pg.waitForSelector('#bulk');
+  await pg.fill('#bulk', '김하늘 칠판 지우기 3\n2. 이바다 우유 나르기\n박구름\n7\t최별\t화분 물 주기\t2\n한솔, 신발장 정리');
+  await pg.click('[data-act=bulkset]');
+  var ed = await pg.evaluate(function () { return [].map.call(document.querySelectorAll('.sheet .row:not(.rowhead)'), function (r) {
+    var q = function (f) { var e = r.querySelector('[data-f=' + f + ']'); return e ? e.value : ''; }, c = r.querySelector('.cnt');
+    return c ? [q('no'), q('name'), q('role'), c.textContent] : null; }).filter(Boolean); });
+  assert.deepEqual(ed, [['1', '김하늘', '칠판 지우기', '3번'], ['2', '이바다', '우유 나르기', '1번'], ['3', '박구름', '', '1번'], ['7', '최별', '화분 물 주기', '2번'], ['4', '한솔', '신발장 정리', '1번']]);
+  await pg.click('[data-act=saveroster]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
+  await pg.click('[data-act=board]');
+  await pg.waitForSelector('.card');
+  assert.equal(await pg.locator('.card').count(), 5);
 
   // 작은 화면
   var ph = await b.newPage({ viewport: { width: 1280, height: 720 } });
