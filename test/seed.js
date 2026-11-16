@@ -12,6 +12,16 @@
   for (var i = 0; i < names.length; i++) list.push({ no: String(i + 1), name: names[i], role: roles[i][0], icon: '', target: roles[i][1] });
   saveRoster(code, '1234', list);
   var days = ['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06','2026-11-09','2026-11-10','2026-11-11','2026-11-12'];
+  if (window.__DEMO) {
+    // 체험판: 오늘까지의 평일 9일
+    days = [];
+    var t = new Date(Date.now() + 9 * 3600000);
+    while (days.length < 9) {
+      var w = t.getUTCDay();
+      if ((w !== 0 && w !== 6) || !days.length) days.unshift(t.toISOString().slice(0, 10));
+      t = new Date(t.getTime() - 86400000);
+    }
+  }
   for (var d = 0; d < days.length; d++) {
     window.__TODAY = days[d];
     for (var s = 0; s < list.length; s++) {
@@ -22,6 +32,7 @@
       for (var k = 0; k < n; k++) record(code, list[s].no, 1, days[d]);
     }
   }
-  setAbsent(code, '1234', '9', true, '2026-11-12');
+  setAbsent(code, '1234', '9', true, days[days.length - 1]);
+  if (window.__DEMO) window.__TODAY = null;
   window.__SEED_CODE = /pick/.test(location.search) ? '' : code;
 })();

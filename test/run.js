@@ -162,6 +162,14 @@ var assert = require('assert');
   assert.equal(made.roster, 25); assert.equal(made.sum, '24명'); assert.equal(made.old, before);
   await pg.click('[data-act=board]');
 
+  // 설치점검 함수: 모든 항목 통과, 점검용 학급은 목록에 남지 않음
+  var self = await pg.evaluate(function () { var t = 설치점검(); return { t: t, classes: listClasses().map(function (c) { return c.name; }) }; });
+  assert.ok(/모든 점검을 통과/.test(self.t), self.t);
+  assert.ok(!/❌|⚠️/.test(self.t), self.t);
+  assert.equal(self.classes.indexOf('설치 점검반'), -1);
+  var self2 = await pg.evaluate(function () { return 설치점검(); });
+  assert.ok(/모든 점검을 통과/.test(self2), self2);
+
   // 학급 고르기 화면 + 새 학급
   await pg.goto(file + '?pick');
   await pg.waitForSelector('.tags .btn');

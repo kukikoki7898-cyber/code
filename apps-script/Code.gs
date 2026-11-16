@@ -28,6 +28,8 @@ var REST_HEAD = ['시작', '끝', '이름'];
 var MARK = '○';
 var ABSENT = '결석';
 var MAX_TARGET = 5;
+// 참이면 꾸미기 오류도 숨기지 않고 알려 준다. (설치 점검과 자동 검사에서만 켠다)
+var STRICT_ = typeof __STRICT_STYLE !== 'undefined';
 
 function doGet(e) {
   var c = String((e && e.parameter && e.parameter.c) || '').replace(/[^a-z0-9]/g, '');
@@ -150,7 +152,7 @@ function openBook_(cls) {
   try {
     return SpreadsheetApp.openById(cls.sheetId);
   } catch (err) {
-    throw new Error('스프레드시트를 열 수 없어요. 시트 공유 설정에서 "링크가 있는 모든 사용자 - 편집자"로 바꾸었는지 확인해 주세요.');
+    throw new Error('스프레드시트를 열 수 없어요. 이 앱을 설치한 구글 계정으로 만든 시트인지 확인해 주세요. 다른 계정의 시트라면 설치한 계정을 편집자로 공유해야 해요.');
   }
 }
 
@@ -175,7 +177,7 @@ function grow_(sh, rows, cols) {
 
 /** 꾸미기는 실패해도 기록에는 지장이 없도록 감싼다. */
 function safe_(fn) {
-  try { fn(); } catch (err) { if (typeof __STRICT_STYLE !== 'undefined') throw err; }
+  try { fn(); } catch (err) { if (STRICT_) throw err; }
 }
 
 function headStyle_(rng) {
@@ -692,4 +694,129 @@ function deleteClass(code, pw) {
   checkPw_(cls, pw);
   props_().deleteProperty('class_' + cls.code);
   return true;
+}
+
+/* ---------- 설치 점검 ---------- */
+
+/**
+ * 설치가 잘 되었는지 실제 구글 시트로 확인한다.
+ * 편집기 위쪽 함수 목록에서 [설치점검]을 고르고 [실행]을 누른 뒤, 아래 실행 로그를 본다.
+ * 점검용 스프레드시트 하나를 드라이브에 만들어 쓰며, 끝난 뒤 지워도 된다.
+ */
+function 설치점검() {
+  var out = [], bad = 0;
+  var check = function (name, ok, detail) {
+    if (!ok) bad++;
+    out.push((ok ? '✅ ' : '❌ ') + name + (ok || !detail ? '' : '  →  ' + detail));
+  };
+  var CODE = 'selftest', PW = 'selftest-pw';
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    // 1. 점검용 스프레드시트 준비 (있으면 다시 쓴다)
+    var id = props_().getProperty('selftest_id'), ss = null;
+    if (id) { try { ss = SpreadsheetApp.openById(id); } catch (err) { ss = null; } }
+    if (!ss) {
+      ss = SpreadsheetApp.create('1인 1역 설치 점검용 (지워도 됩니다)');
+      props_().setProperty('selftest_id', ss.getId());
+    }
+    var tmp = ss.getSheetByName('임시') || ss.insertSheet('임시', 0);
+    var old = ss.getSheets();
+    for (var i = 0; i < old.length; i++) if (old[i].getName() !== '임시') ss.deleteSheet(old[i]);
+    check('스프레드시트 만들기', true);
+
+    var cls = { code: CODE, name: '설치 점검반', sheetId: ss.getId(), sound: true };
+    cls.pw = hash_(CODE, PW);
+    putClass_(cls);
+    var today = today_();
+
+    // 2. 명단 저장
+    var st = saveRoster(CODE, PW, [
+      { no: '1', name: '가람', role: '칠판 지우기', icon: '', target: 3 },
+      { no: '2', name: '나래', role: '칠판 지우기', icon: '', target: 3 },
+      { no: '3', name: '다온', role: '우유 나르기', icon: '', target: 1 }
+    ]);
+    check('명단 저장', st.students.length === 3, '학생 수 ' + st.students.length);
+    ss.deleteSheet(tmp);
+    var names = [], all = ss.getSheets();
+    for (var k = 0; k < all.length; k++) names.push(all[k].getName());
+    check('시트 구성 (요약이 맨 앞)', names[0] === SH_SUM && names.length === 4, names.join(', '));
+
+    // 3. 도장 찍기와 지우기
+    var r1 = record(CODE, '3', 1, today);
+    check('도장 찍기', r1.done === 1, JSON.stringify(r1));
+    record(CODE, '1', 1, today);
+    var r2 = record(CODE, '1', 1, today);
+    check('하루 여러 번 하는 역할', r2.done === 2, JSON.stringify(r2));
+    var r3 = record(CODE, '1', -1, today);
+    check('도장 지우기', r3.done === 1, JSON.stringify(r3));
+    for (var n = 0; n < 5; n++) record(CODE, '2', 1, today);
+    var log = readLog_(ss), col = log.dateCol[today];
+    var cellOf = function (no) { var row = log.rowOf['k' + no]; return row === undefined || col === undefined ? '(없음)' : String(log.v[row][col]); };
+    check('기록 시트에 ○ 저장', cellOf('3') === MARK && cellOf('1') === MARK && cellOf('2') === MARK + MARK + MARK,
+      [cellOf('1'), cellOf('2'), cellOf('3')].join(' | '));
+    check('어제 날짜로는 저장 안 됨', record(CODE, '3', 1, addDays_(today, -1)).stale === true);
+
+    // 4. 결석
+    var ab = setAbsent(CODE, PW, '3', true, today);
+    check('결석 표시', ab.absent === true && getState(CODE).students[2].absent === true);
+    setAbsent(CODE, PW, '3', false, today);
+    record(CODE, '3', 1, today);
+
+    // 5. 쉬는 날
+    var far = addDays_(today, 400);
+    saveRest(CODE, PW, [{ start: far, end: addDays_(far, 2), name: '점검용 방학' }]);
+    var rest = readRest_(ss);
+    check('쉬는 날 저장', rest.length === 1 && rest[0].start === far && rest[0].name === '점검용 방학', JSON.stringify(rest));
+
+    // 6. 화면에 보낼 상태와 요약 시트
+    var now = getState(CODE), a = now.students;
+    check('화면 상태', a[0].done === 1 && a[1].done === 3 && a[2].done === 1 && !a[2].absent,
+      a[0].done + ', ' + a[1].done + ', ' + a[2].done);
+    var sum = ss.getSheetByName(SH_SUM).getDataRange().getValues();
+    check('요약 시트 제목', String(sum[0][0]).indexOf('설치 점검반') === 0, String(sum[0][0]));
+    check('요약 시트 현황', String(sum[4][0]) === '3명' && String(sum[4][2]) === '2 / 3명', sum[4][0] + ' | ' + sum[4][2]);
+    check('요약 시트 학생 표', String(sum[SUM_TOP][1]) === '가람' && String(sum[SUM_TOP][4]) === '1 / 3' && String(sum[SUM_TOP + 1][4]) === '완료',
+      sum[SUM_TOP][1] + ' | ' + sum[SUM_TOP][4] + ' | ' + sum[SUM_TOP + 1][4]);
+
+    // 7. 날짜 열이 시트 너비(26칸)를 넘어가도 저장되는지
+    var sh = log.sh, past = [];
+    for (var d = 40; d >= 1; d--) past.push(addDays_(today, -d - 400));
+    grow_(sh, 1, 4 + past.length);
+    var lastCol = sh.getLastColumn();
+    sh.getRange(1, lastCol + 1, 1, past.length).setNumberFormat('@').setValues([past]);
+    sh.getRange(1, col + 1).setValue('');   // 오늘 열의 머리글을 지워 새 열이 맨 끝에 생기게 한다
+    var wide = record(CODE, '1', 1, today), end = sh.getLastColumn();
+    check('날짜가 많아져도 저장', wide.done === 1 && end === lastCol + past.length + 1, '마지막 열 ' + end);
+
+    // 8. 비밀번호
+    var denied = false;
+    try { auth(CODE, 'wrong'); } catch (err2) { denied = true; }
+    check('틀린 비밀번호 거절', denied);
+    check('맞는 비밀번호 통과', auth(CODE, PW).roster.length === 3);
+
+    // 9. 시트 꾸미기 (실패해도 기록에는 지장 없음)
+    STRICT_ = true;
+    try {
+      tidy_(ss);
+      writeSummary_(cls, ss, buildState_(cls, ss), true);
+      check('시트 꾸미기', true);
+    } catch (err3) {
+      out.push('⚠️ 시트 꾸미기 일부 실패 (기록에는 지장 없음)  →  ' + err3.message);
+    }
+    STRICT_ = false;
+  } catch (err) {
+    check('점검 도중 오류', false, err.message);
+  } finally {
+    STRICT_ = false;
+    props_().deleteProperty('class_' + CODE);
+    lock.releaseLock();
+  }
+  out.push('');
+  out.push(bad ? '❌ ' + bad + '개 항목에 문제가 있어요. 위 내용을 그대로 복사해 문의해 주세요.'
+    : '🎉 모든 점검을 통과했어요. 이제 [배포]를 하시면 됩니다.');
+  out.push('(드라이브에 생긴 "1인 1역 설치 점검용" 파일은 지워도 됩니다.)');
+  var text = out.join('\n');
+  Logger.log('\n' + text);
+  return text;
 }

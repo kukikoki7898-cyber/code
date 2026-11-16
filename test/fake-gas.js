@@ -92,6 +92,7 @@
       return new Date(d.getTime() + 9 * 3600000).toISOString().slice(0, 10);
     }
   };
+  g.Logger = { log: function () {} };
   g.ScriptApp = { getService: function () { return { getUrl: function () { return 'https://script.google.com/macros/s/EXAMPLE/exec'; } }; } };
 
   function runner(ok, fail) {
