@@ -253,6 +253,10 @@
           setTimeout(function () { showLogin(NEED_BOX); }, 0);
           throw e2;
         }
+        if (/storage quota/i.test(raw)) {
+          var e3 = new Error('이 구글 계정의 드라이브 저장 공간이 가득 차서 스프레드시트를 만들 수 없어요. 드라이브를 비우거나 다른 구글 계정으로 로그인해 주세요. 설정의 [저장 방식 바꾸기]에서 로그인 없이 쓰는 방식으로 바꿀 수도 있어요.');
+          e3.status = res.status; throw e3;
+        }
         var msg = res.status === 401 ? '로그인이 끝났어요. 화면을 한 번 더 눌러 주세요.' :
           res.status === 429 ? '요청이 잠깐 몰렸어요. 곧 다시 저장합니다.' :
           res.status === 404 ? '스프레드시트를 찾을 수 없어요. 드라이브에서 지워졌을 수 있어요.' :
