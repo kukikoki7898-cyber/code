@@ -16,6 +16,18 @@
 - 토·일요일과 등록한 쉬는 날에는 쉬는 날 화면이 나옵니다.
 - 인터넷이 잠깐 끊겨도 도장은 화면에 남고, 연결되면 다시 저장합니다.
 
+## 두 가지 사용 방식
+
+| | 각자 설치 (Apps Script) | 웹 버전 (구글 로그인) |
+|---|---|---|
+| 쓰는 사람이 할 일 | 10분 설치 | 주소 열고 구글 로그인 |
+| 전자칠판 로그인 | 필요 없음 | 필요함 (칠판 전용 계정 권장) |
+| 준비 | `dist/1인1역_설치꾸러미.zip` | `web/설정 안내.md` (운영자 1회) |
+| 파일 | `apps-script/` | `docs/index.html`, `docs/config.js` |
+
+두 방식은 같은 화면(`apps-script/Index.html`)과 같은 기록 로직(`apps-script/Code.gs`)을 씁니다.
+웹 버전은 `web/adapter.js`가 Apps Script 대신 Google Sheets API로 읽고 씁니다.
+
 ## 설치 꾸러미
 
 `dist/1인1역_설치꾸러미.zip`에 설치 안내서(PDF), 붙여 넣을 코드, 체험판, 소개글이 들어 있습니다.
@@ -68,6 +80,7 @@
 `test/`에는 가짜 Apps Script 환경으로 `Code.gs`와 `Index.html`을 브라우저에서 그대로 돌려 보는 검사가 있습니다.
 
 ```
+node tools/build-web.js --mock /tmp/web.html && node test/run-web.js /tmp/web.html /tmp/shots   # 웹 버전
 node test/build-preview.js /tmp/preview.html
 node test/run.js /tmp/preview.html /tmp/shots   # playwright 필요
 ```

@@ -152,6 +152,7 @@ function openBook_(cls) {
   try {
     return SpreadsheetApp.openById(cls.sheetId);
   } catch (err) {
+    if (err && err.need) throw err;   // 웹 버전: 시트를 먼저 읽어 와야 한다는 신호
     throw new Error('스프레드시트를 열 수 없어요. 이 앱을 설치한 구글 계정으로 만든 시트인지 확인해 주세요. 다른 계정의 시트라면 설치한 계정을 편집자로 공유해야 해요.');
   }
 }
@@ -177,7 +178,7 @@ function grow_(sh, rows, cols) {
 
 /** 꾸미기는 실패해도 기록에는 지장이 없도록 감싼다. */
 function safe_(fn) {
-  try { fn(); } catch (err) { if (STRICT_) throw err; }
+  try { fn(); } catch (err) { if (STRICT_ || (err && err.need)) throw err; }
 }
 
 function headStyle_(rng) {

@@ -244,7 +244,7 @@ var GUESS = [['문고','📚'],['창','🪟'],['칠판','🧽'],['우유','🥛'
 /* ---------- 도우미 ---------- */
 function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function api(fn, args, ok, fail){
-  var r = google.script.run
+  var r = (window.__RUN ? window.__RUN() : google.script.run)
     .withSuccessHandler(function(v){ if (ok) ok(v); })
     .withFailureHandler(function(e){ var m = (e && e.message) || String(e); if (fail) fail(m); else toast(m); });
   r[fn].apply(r, args || []);
@@ -378,8 +378,9 @@ function renderPick(){
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
     '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
+    (BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
-    '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>' +
+    '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
     '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
     '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="createclass">만들기</button></div>');
 }
@@ -620,10 +621,13 @@ function renderSettings(){
     h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrest">+ 쉬는 날 추가</button><span class="grow"></span><button class="btn yellow" data-act="saverest">저장하기</button></div>';
   } else {
     var ad = S.admin;
-    h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요. 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.</p>' +
-      '<div class="field"><div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>' +
+    h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요.' +
+      (BOOT.web ? '' : ' 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.') + '</p><div class="field">' +
+      (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
       '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
-      '<p class="note" style="margin:8px 0 0">새 파일은 이 앱을 설치한 구글 드라이브에 만들어져요.</p></div>' +
+      '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
+      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
+        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '') +
       '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
@@ -713,6 +717,7 @@ function act(a, el){
       break;
     case 'sound': adminCall('updateClass', [{ sound: !S.admin.sound }], function(r){ S.admin.sound = r.sound; S.st.sound = r.sound; render(); }); break;
     case 'pick': store('c', null); S.pw = ''; showPick(); break;
+    case 'logout': store('c', null); S.pw = ''; S.admin = null; window.ONE_ROLE.logout(); showPick(); break;
     case 'delclass':
       modal('<h3>이 학급을 지울까요?</h3><p class="hand" style="font-size:19px">학급 목록에서만 사라지고, 스프레드시트와 기록은 그대로 남아요.</p>' +
         '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn red" data-act="delclass2">지우기</button></div>');
