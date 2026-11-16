@@ -233,7 +233,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-16 11:37";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-16 11:41";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -1219,7 +1219,8 @@ function 설치점검() {
 
   /* ================= 구글 API 호출 ================= */
 
-  function http(method, url, body) {
+  /** step 은 오류가 났을 때 어느 단계였는지 알려 주는 이름이다. */
+  function http(method, url, body, step) {
     return getToken().then(function (t) {
       return fetch(url, {
         method: method,
@@ -1241,7 +1242,7 @@ function 설치점검() {
           res.status === 429 ? '요청이 잠깐 몰렸어요. 곧 다시 저장합니다.' :
           res.status === 404 ? '스프레드시트를 찾을 수 없어요. 드라이브에서 지워졌을 수 있어요.' :
           res.status === 403 ? '구글이 요청을 거절했어요: ' + raw : '구글 오류: ' + raw;
-        var e = new Error(msg); e.status = res.status; throw e;
+        var e = new Error(msg + (step ? ' (단계: ' + step + ')' : '')); e.status = res.status; throw e;
       });
     });
   }
@@ -1452,12 +1453,12 @@ function 설치점검() {
 
   function loadBook(id) {
     var meta;
-    return http('GET', SHEETS + '/' + id + '?fields=' + encodeURIComponent('sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)),conditionalFormats)'))
+    return http('GET', SHEETS + '/' + id + '?fields=' + encodeURIComponent('sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)),conditionalFormats)'), undefined, '시트 구성 읽기')
       .then(function (m) {
         meta = m.sheets || [];
         var q = '';
         for (var i = 0; i < meta.length; i++) q += '&ranges=' + encodeURIComponent(quote(meta[i].properties.title));
-        return http('GET', SHEETS + '/' + id + '/values:batchGet?valueRenderOption=FORMATTED_VALUE' + q);
+        return http('GET', SHEETS + '/' + id + '/values:batchGet?valueRenderOption=FORMATTED_VALUE' + q, undefined, '시트 내용 읽기');
       }).then(function (v) {
         var b = new Book(id), vr = v.valueRanges || [];
         for (var i = 0; i < meta.length; i++) {
@@ -1467,17 +1468,15 @@ function 설치점검() {
         }
         b.readAt = b.freshAt = Date.now();
         books[id] = b;
+        return b;
       });
   }
 
+  // 새 스프레드시트는 드라이브 API 로 만든다. drive.file 권한에서 "이 앱이 만든 파일"로 확실히 인정받는 방법이다.
   function createBook(title) {
-    return http('POST', SHEETS, { properties: { title: title, locale: 'ko_KR', timeZone: 'Asia/Seoul' } }).then(function (r) {
-      var b = new Book(r.spreadsheetId), list = r.sheets || [];
-      for (var i = 0; i < list.length; i++) b.sheets.push(new Sheet(b, list[i].properties, 0));
-      b.readAt = b.freshAt = Date.now();
-      books[b.id] = b;
-      premade[title] = b;
-    });
+    return http('POST', DRIVE + '?fields=id', { name: title, mimeType: 'application/vnd.google-apps.spreadsheet' }, '새 스프레드시트 만들기')
+      .then(function (r) { return loadBook(r.id); })
+      .then(function (b) { premade[title] = b; });
   }
 
   /* ================= 학급 목록 (드라이브 파일 속성) ================= */
@@ -1486,7 +1485,7 @@ function 설치점검() {
 
   function loadList() {
     var q = "appProperties has { key='oneRole' and value='1' } and trashed=false";
-    return http('GET', DRIVE + '?pageSize=200&fields=' + encodeURIComponent('files(id,appProperties)') + '&q=' + encodeURIComponent(q)).then(function (r) {
+    return http('GET', DRIVE + '?pageSize=200&fields=' + encodeURIComponent('files(id,appProperties)') + '&q=' + encodeURIComponent(q), undefined, '학급 목록 읽기').then(function (r) {
       classes = {};
       var f = r.files || [];
       for (var i = 0; i < f.length; i++) {
@@ -1594,18 +1593,18 @@ function 설치점검() {
   function flush(ctx) {
     return seq(ctx.order, function (id) {
       var o = ctx[id], base = SHEETS + '/' + id, p = Promise.resolve();
-      if (o.struct.length) p = p.then(function () { return http('POST', base + ':batchUpdate', { requests: o.struct }); });
-      if (o.values.length) p = p.then(function () { return http('POST', base + '/values:batchUpdate', { valueInputOption: 'RAW', data: o.values }); });
+      if (o.struct.length) p = p.then(function () { return http('POST', base + ':batchUpdate', { requests: o.struct }, '시트 만들기'); });
+      if (o.values.length) p = p.then(function () { return http('POST', base + '/values:batchUpdate', { valueInputOption: 'RAW', data: o.values }, '기록 쓰기'); });
       if (o.fmt.length) p = p.then(function () {
         // 꾸밈은 실패해도 기록에는 지장이 없다. 다음에 다시 읽도록만 해 둔다.
-        return http('POST', base + ':batchUpdate', { requests: o.fmt }).catch(function (e) {
+        return http('POST', base + ':batchUpdate', { requests: o.fmt }, '시트 꾸미기').catch(function (e) {
           if (g.console) console.warn('시트 꾸미기 실패:', e.message);
           g.__fmtError = e.message; o.book.freshAt = 0;
         });
       });
       return p.then(function () { if (o.book.freshAt) o.book.freshAt = Date.now(); });
     }).then(function () {
-      return seq(ctx.drive, function (d) { return http('PATCH', DRIVE + '/' + d.id, { appProperties: d.props }); });
+      return seq(ctx.drive, function (d) { return http('PATCH', DRIVE + '/' + d.id, { appProperties: d.props }, '학급 정보 저장'); });
     });
   }
 

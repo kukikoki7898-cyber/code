@@ -85,7 +85,7 @@
       if ((opt.headers || {}).Authorization !== 'Bearer ' + M.valid) return err(401, 'Invalid Credentials');
       if (M.failNext > 0) { M.failNext--; return err(500, 'Internal error'); }
       if (p === '/drive/v3/about') return resp(200, { user: { emailAddress: 'teacher@example.com' } });
-      if (p === '/drive/v3/files') {
+      if (p === '/drive/v3/files' && method === 'GET') {
         var out = [];
         for (var id in store.files) if ((store.files[id].appProperties || {}).oneRole === '1') out.push({ id: id, appProperties: store.files[id].appProperties });
         return resp(200, { files: out });
@@ -101,6 +101,13 @@
           }
         }
         save(); return resp(200, { id: m[1] });
+      }
+      if (p === '/drive/v3/files' && method === 'POST') {
+        if (body.mimeType !== 'application/vnd.google-apps.spreadsheet') return err(400, 'bad mimeType');
+        var did = 'FAKE' + (++store.seq) + 'abcdefghijklmnopqrstuvwx';
+        store.files[did] = { title: body.name, appProperties: body.appProperties || {}, sheets: [{ properties: { sheetId: 0, title: '시트1', index: 0, gridProperties: { rowCount: 1000, columnCount: 26 } }, values: [], cf: 0 }] };
+        save();
+        return resp(200, { id: did });
       }
       if (p === '/v4/spreadsheets' && method === 'POST') {
         var nid = 'FAKE' + (++store.seq) + 'abcdefghijklmnopqrstuvwx';
