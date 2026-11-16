@@ -33,10 +33,11 @@ var assert = require('assert');
   // 권한 화면에서 드라이브 칸을 체크하지 않고 허용한 경우: 안내를 보여 주고, 다시 로그인할 때 권한 화면을 다시 띄운다
   await pg.evaluate(function () { window.__mock.skipDrive = true; });
   await pg.click('#or-go');
-  await pg.waitForFunction(function () { var t = document.querySelector('#or-login'); return t && /네모 칸에 체크/.test(t.textContent); });
+  await pg.waitForFunction(function () { var t = document.querySelector('#or-login'); return t && /드라이브 권한이 빠져/.test(t.textContent); });
   await pg.click('#or-go');
   await pg.waitForFunction(function () { var t = document.querySelector('.center p'); return t && /아직 만든 학급이 없어요/.test(t.textContent); });
   assert.equal((await pg.evaluate(function () { return window.__mock.lastOpt; })).prompt, 'consent');
+  assert.equal(await pg.evaluate(function () { return window.__mock.askedScope; }), 'https://www.googleapis.com/auth/drive.file');
   assert.equal(await pg.locator('#or-login').count(), 0);
 
   // 2. 학급 만들기: 드라이브에 파일이 생기고 꼬리표가 붙는다. 주소 입력칸은 없다.

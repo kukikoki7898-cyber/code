@@ -1072,13 +1072,14 @@ function 설치점검() {
  *   쓰기 : 바뀐 칸과 꾸밈을 모아 API 로 보낸다
  *
  * 학급 목록은 서버가 없으므로 드라이브 파일의 appProperties 에 적어 둔다.
- * 권한은 drive.file (이 앱이 만든 파일만) 과 이메일 주소뿐이다.
+ * 권한은 drive.file (이 앱이 만든 파일만) 하나뿐이다.
  */
 (function (g) {
   'use strict';
 
   var CFG = g.ONE_ROLE_CONFIG || {};
-  var SCOPE = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+  // 권한을 하나만 요청해야 구글 권한 화면에 체크 칸이 생기지 않고 [계속] 한 번으로 끝난다.
+  var SCOPE = 'https://www.googleapis.com/auth/drive.file';
   var SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
   var DRIVE = 'https://www.googleapis.com/drive/v3/files';
   var FRESH_MS = 45 * 1000;        // 이 시간 안에는 시트를 다시 읽지 않는다
@@ -1114,7 +1115,7 @@ function 설치점검() {
   }
 
   var askConsent = false;   // 참이면 다음 로그인 때 권한 화면을 다시 보여 준다
-  var NEED_BOX = '권한 화면에서 <b>"이 앱에서 사용하는 Google Drive 파일만 보기, 수정, 생성, 삭제"</b> 네모 칸에 체크해야 기록을 저장할 수 있어요. 다시 로그인해서 체크해 주세요.';
+  var NEED_BOX = '구글 드라이브 권한이 빠져 있어요. 다시 로그인해서 권한 화면의 <b>[계속]</b>을 눌러 주세요. 네모 칸이 보이면 체크해 주세요.';
 
   function gotToken(r) {
     requesting = false; clearTimeout(reqTimer);
@@ -1131,9 +1132,10 @@ function 설치점검() {
     var w = waiters; waiters = [];
     for (var i = 0; i < w.length; i++) w[i](tok);
     if (!email) {
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + tok } })
+      // 다음 로그인 때 같은 계정을 바로 고르기 위해, 드라이브 계정 정보에서 메일 주소만 읽어 브라우저에 적어 둔다.
+      fetch('https://www.googleapis.com/drive/v3/about?fields=' + encodeURIComponent('user(emailAddress)'), { headers: { Authorization: 'Bearer ' + tok } })
         .then(function (res) { return res.ok ? res.json() : {}; })
-        .then(function (j) { if (j && j.email) { email = j.email; ls('or_email', email); } })
+        .then(function (j) { if (j && j.user && j.user.emailAddress) { email = j.user.emailAddress; ls('or_email', email); } })
         .catch(function () {});
     }
   }
