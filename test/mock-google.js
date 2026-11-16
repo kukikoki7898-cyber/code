@@ -12,7 +12,8 @@
         M.tokenReqs++; M.lastOpt = opt;
         setTimeout(function () {
           M.valid = 'tok' + M.tokenReqs;
-          var scope = M.skipDrive ? 'https://www.googleapis.com/auth/userinfo.email' : cfg.scope;
+          var scope = M.skipDrive ? 'openid' : cfg.scope;
+          M.askedScope = cfg.scope;
           M.skipDrive = false;
           cfg.callback({ access_token: M.valid, expires_in: M.expires, scope: scope });
         }, 40);
@@ -83,7 +84,7 @@
     return new Promise(function (resolve) { setTimeout(resolve, 15); }).then(function () {
       if ((opt.headers || {}).Authorization !== 'Bearer ' + M.valid) return err(401, 'Invalid Credentials');
       if (M.failNext > 0) { M.failNext--; return err(500, 'Internal error'); }
-      if (p === '/oauth2/v3/userinfo') return resp(200, { email: 'teacher@example.com' });
+      if (p === '/drive/v3/about') return resp(200, { user: { emailAddress: 'teacher@example.com' } });
       if (p === '/drive/v3/files') {
         var out = [];
         for (var id in store.files) if ((store.files[id].appProperties || {}).oneRole === '1') out.push({ id: id, appProperties: store.files[id].appProperties });
