@@ -26,7 +26,11 @@ var assert = require('assert');
   var hex = await pg.evaluate(function () { return window.__sha256([97, 98, 99]).map(function (v) { return ('0' + ((v + 256) % 256).toString(16)).slice(-2); }).join(''); });
   assert.equal(hex, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 
-  // 1. 처음에는 로그인 창, 로그인하면 학급 고르기
+  // 1. 처음 열면 묻지 않고 바로 시작한다. [저장 방식 바꾸기]를 눌러야 고르는 창이 나온다.
+  await pg.waitForSelector('#nc-name');
+  assert.equal(await pg.locator('#or-login').count(), 0);
+  await pg.click('[data-act=close]');
+  await pg.click('[data-act=mode]'); await pg.click('[data-act=mode2]');
   await pg.waitForSelector('#or-login');
   assert.ok(/기록을 어디에 저장할까요/.test(await pg.textContent('#or-login')));
   await pg.screenshot({ path: shots + '/web-login.png' });
@@ -159,9 +163,8 @@ var assert = require('assert');
   var lp = await c2.newPage(), errs2 = [];
   lp.on('pageerror', function (e) { errs2.push(String(e)); });
   await lp.goto(file);
-  await lp.waitForSelector('#or-local');
-  await lp.click('#or-local');
   await lp.waitForSelector('#nc-name');
+  assert.equal(await lp.locator('#or-login').count(), 0);
   assert.ok(/이 기기의 브라우저에 저장/.test(await lp.textContent('.modal')));
   await lp.fill('#nc-name', '1학년 2반'); await lp.fill('#nc-pw', '1234'); await lp.click('[data-act=createclass]');
   await lp.waitForSelector('#bulk');
