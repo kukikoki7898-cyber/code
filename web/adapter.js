@@ -100,6 +100,41 @@
     try { client.requestAccessToken(opt); } catch (e) { failToken('error'); }
   }
 
+  /* ----- 저장 방식: 'google' = 구글 로그인 + 구글 시트, 'local' = 로그인 없이 이 기기의 브라우저에만 ----- */
+  var mode = ls('or_mode') || '', modeWaiters = [];
+  function isLocal() { return mode === 'local'; }
+  function setMode(m) {
+    mode = m; ls('or_mode', m); hideLogin();
+    if (m === 'local' && navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch (e) { /* 무시 */ } }
+    var w = modeWaiters; modeWaiters = [];
+    for (var i = 0; i < w.length; i++) w[i]();
+  }
+  function ensureMode() {
+    if (mode) return Promise.resolve();
+    return new Promise(function (resolve) { modeWaiters.push(resolve); showChooser(); });
+  }
+  function showChooser() {
+    var d = document.getElementById('or-login');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'or-login';
+      d.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:200;display:flex;align-items:center;justify-content:center;' +
+        'background:rgba(43,42,40,.55);padding:16px;font-family:Jua,sans-serif;overflow:auto';
+      document.body.appendChild(d);
+    }
+    var card = 'display:block;width:100%;text-align:left;font:inherit;cursor:pointer;margin-top:12px;padding:14px 16px;border:2.5px solid #2b2a28;' +
+      'border-radius:14px;box-shadow:3px 4px 0 rgba(43,42,40,.22);';
+    d.innerHTML = '<div style="background:#fffdf6;border:3px solid #2b2a28;border-radius:14px 22px 16px 24px / 22px 14px 24px 16px;padding:24px;max-width:520px;width:100%;box-shadow:6px 8px 0 rgba(43,42,40,.3)">' +
+      '<div style="font-size:27px;text-align:center">기록을 어디에 저장할까요?</div>' +
+      '<button id="or-local" style="' + card + 'background:#f7cf3d"><span style="font-size:22px">바로 시작하기 <small style="font-size:15px">(로그인 없음)</small></span>' +
+      '<br><span style="font:15px/1.5 sans-serif">이 기기의 브라우저에만 저장해요. 다른 기기에서는 볼 수 없고, 엑셀 파일로 내려받을 수 있어요.</span></button>' +
+      (CFG.clientId ? '<button id="or-google" style="' + card + 'background:#fff"><span style="font-size:22px">구글 시트에 저장하기 <small style="font-size:15px">(구글 로그인)</small></span>' +
+      '<br><span style="font:15px/1.5 sans-serif">내 구글 드라이브의 스프레드시트에 저장해요. 어느 기기에서든 로그인하면 이어서 쓸 수 있어요.</span></button>' : '') +
+      '<div style="margin-top:14px;font:12px sans-serif;color:#999;text-align:center">나중에 설정에서 바꿀 수 있어요 · 버전 ' + (g.ONE_ROLE_BUILD || '-') + '</div></div>';
+    document.getElementById('or-local').onclick = function () { setMode('local'); };
+    var gg = document.getElementById('or-google');
+    if (gg) gg.onclick = function () { setMode('google'); requestToken(false); };
+  }
+
   function getToken() {
     if (tokenOk()) return Promise.resolve(tok);
     return new Promise(function (resolve) {
@@ -110,7 +145,7 @@
 
   // 화면을 누를 때마다 확인해서, 로그인이 곧 끝나거나 끝났으면 그 누름을 이용해 조용히 갱신한다.
   document.addEventListener('click', function (ev) {
-    if (!CFG.clientId || !email || requesting) return;
+    if (mode !== 'google' || !CFG.clientId || !email || requesting) return;
     if (ev.target && ev.target.closest && ev.target.closest('#or-login')) return;
     if (!tokenOk(8 * 60 * 1000)) requestToken(false);
   }, true);
@@ -149,6 +184,49 @@
       try { if (tok && g.google && g.google.accounts) g.google.accounts.oauth2.revoke(tok, function () {}); } catch (e) { /* 무시 */ }
       tok = null; tokExp = 0; email = ''; ls('or_email', null);
       books = {}; classes = {}; listAt = 0;
+    },
+    local: isLocal,
+    // 저장 방식을 다시 고르게 한다. 이미 저장된 기록은 그대로 남는다.
+    changeMode: function () { ls('or_mode', null); ls('c', null); g.location.reload(); },
+    // 시트 한 장을 엑셀에서 열리는 CSV 글자로 돌려준다. (불러와 둔 학급만)
+    csv: function (code, sheetName) {
+      var c = classes[code], b = c && books[c.sheetId], sh = b && b.getSheetByName(sheetName);
+      if (!sh) return '';
+      var v = sh.getDataRange().getValues(), out = [];
+      for (var i = 0; i < v.length; i++) {
+        var line = [];
+        for (var j = 0; j < v[i].length; j++) {
+          var x = v[i][j]; x = typeof x === 'number' && sheetName === '요약' && j === 12 ? Math.round(x * 100) + '%' : String(x);
+          line.push(/[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x);
+        }
+        out.push(line.join(','));
+      }
+      return '\uFEFF' + out.join('\r\n');
+    },
+    download: function (name, text, type) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain;charset=utf-8' }));
+      a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 2000);
+    },
+    // 이 기기에 저장된 모든 학급을 파일 하나로 묶는다 / 되돌린다.
+    backup: function () {
+      var out = { app: 'oneRole', saved: new Date().toISOString(), classes: JSON.parse(ls('or_classes') || '{}'), books: {} };
+      for (var code in out.classes) out.books[out.classes[code].sheetId] = JSON.parse(ls('or_book_' + out.classes[code].sheetId) || 'null');
+      return JSON.stringify(out);
+    },
+    restore: function (text) {
+      var d = JSON.parse(text);
+      if (!d || d.app !== 'oneRole' || !d.classes || !d.books) throw new Error('1인 1역 백업 파일이 아니에요.');
+      var cur = JSON.parse(ls('or_classes') || '{}'), n = 0;
+      for (var code in d.classes) {
+        var id = d.classes[code].sheetId;
+        if (!d.books[id]) continue;
+        put('or_book_' + id, JSON.stringify(d.books[id])); cur[code] = d.classes[code]; n++;
+      }
+      put('or_classes', JSON.stringify(cur));
+      books = {}; classes = {}; listAt = 0;
+      return n;
     },
     // 자동 검사에서만 쓴다.
     _test: { expire: function () { tokExp = 0; }, stale: function () { stale(); } }
@@ -379,6 +457,7 @@
     newConditionalFormatRule: ruleBuilder,
     openById: function (id) {
       var b = books[id], now = Date.now();
+      if (b && b.freshAt && isLocal()) return b;
       if (!b || now - b.freshAt > FRESH_MS || now - b.readAt > MAX_AGE_MS) throw need('load', id);
       return b;
     },
@@ -388,7 +467,28 @@
     }
   };
 
+  /** 반드시 저장되어야 하는 값에 쓴다. 저장하지 못하면 알린다. */
+  function put(k, v) {
+    try { localStorage.setItem(k, v); }
+    catch (e) { throw new Error('이 기기에 저장하지 못했어요. 브라우저의 저장 공간이 꽉 찼거나 시크릿 창일 수 있어요.'); }
+  }
+  function saveLocal(b) {
+    put('or_book_' + b.id, JSON.stringify({ sheets: b.sheets.map(function (sh) {
+      return { p: { sheetId: sh.sheetId, title: sh.name, gridProperties: { rowCount: sh.maxR, columnCount: sh.maxC } }, d: sh.d };
+    }) }));
+  }
+  function loadLocal(id) {
+    var raw = ls('or_book_' + id);
+    if (!raw) return Promise.reject(new Error('기록을 찾을 수 없어요. 이 기기의 브라우저 저장 내용이 지워진 것 같아요. 백업 파일이 있으면 설정에서 불러와 주세요.'));
+    var data = JSON.parse(raw), b = new Book(id);
+    for (var i = 0; i < data.sheets.length; i++) { var sh = new Sheet(b, data.sheets[i].p, 0); sh.d = data.sheets[i].d || []; b.sheets.push(sh); }
+    b.readAt = b.freshAt = Date.now();
+    books[id] = b;
+    return Promise.resolve(b);
+  }
+
   function loadBook(id) {
+    if (isLocal()) return loadLocal(id);
     var meta;
     return http('GET', SHEETS + '/' + id + '?fields=' + encodeURIComponent('sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)),conditionalFormats)'), undefined, '시트 구성 읽기')
       .then(function (m) {
@@ -411,6 +511,13 @@
 
   // 새 스프레드시트는 드라이브 API 로 만든다. drive.file 권한에서 "이 앱이 만든 파일"로 확실히 인정받는 방법이다.
   function createBook(title) {
+    if (isLocal()) {
+      var b = new Book('local' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
+      b.sheets.push(new Sheet(b, { sheetId: 0, title: '시트1' }, 0));
+      b.readAt = b.freshAt = Date.now();
+      books[b.id] = b; premade[title] = b;
+      return Promise.resolve();
+    }
     return http('POST', DRIVE + '?fields=id', { name: title, mimeType: 'application/vnd.google-apps.spreadsheet' }, '새 스프레드시트 만들기')
       .then(function (r) { return loadBook(r.id); })
       .then(function (b) { premade[title] = b; });
@@ -421,6 +528,7 @@
   var classes = {}, listAt = 0, misc = {};
 
   function loadList() {
+    if (isLocal()) { classes = JSON.parse(ls('or_classes') || '{}'); listAt = Date.now(); return Promise.resolve(); }
     var q = "appProperties has { key='oneRole' and value='1' } and trashed=false";
     return http('GET', DRIVE + '?pageSize=200&fields=' + encodeURIComponent('files(id,appProperties)') + '&q=' + encodeURIComponent(q), undefined, '학급 목록 읽기').then(function (r) {
       classes = {};
@@ -528,6 +636,13 @@
   }
 
   function flush(ctx) {
+    if (isLocal()) {
+      try {
+        for (var i = 0; i < ctx.order.length; i++) { var o = ctx[ctx.order[i]]; saveLocal(o.book); o.book.freshAt = Date.now(); }
+        if (ctx.drive.length) put('or_classes', JSON.stringify(classes));
+      } catch (e) { return Promise.reject(e); }
+      return Promise.resolve();
+    }
     return seq(ctx.order, function (id) {
       var o = ctx[id], base = SHEETS + '/' + id, p = Promise.resolve();
       if (o.struct.length) p = p.then(function () { return http('POST', base + ':batchUpdate', { requests: o.struct }, '시트 만들기'); });
@@ -548,8 +663,9 @@
   function stale() { for (var id in books) books[id].freshAt = 0; }
 
   function exec(name, args, tries) {
-    var pre = name === 'listClasses' ? loadList() : Promise.resolve();
-    return pre.then(function () {
+    return ensureMode().then(function () {
+      return name === 'listClasses' || (isLocal() && !listAt) ? loadList() : null;
+    }).then(function () {
       var res;
       P = { order: [], drive: [] };
       try {
@@ -591,5 +707,5 @@
   }
   g.__RUN = function () { return runner(null, null); };
 
-  if (!CFG.clientId) g.addEventListener('load', function () { showLogin(''); });
+
 })(window);

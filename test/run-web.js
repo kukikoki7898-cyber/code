@@ -28,11 +28,11 @@ var assert = require('assert');
 
   // 1. 처음에는 로그인 창, 로그인하면 학급 고르기
   await pg.waitForSelector('#or-login');
-  assert.ok(/구글 로그인이 필요해요/.test(await pg.textContent('#or-login')));
+  assert.ok(/기록을 어디에 저장할까요/.test(await pg.textContent('#or-login')));
   await pg.screenshot({ path: shots + '/web-login.png' });
   // 권한 화면에서 드라이브 칸을 체크하지 않고 허용한 경우: 안내를 보여 주고, 다시 로그인할 때 권한 화면을 다시 띄운다
   await pg.evaluate(function () { window.__mock.skipDrive = true; });
-  await pg.click('#or-go');
+  await pg.click('#or-google');
   await pg.waitForFunction(function () { var t = document.querySelector('#or-login'); return t && /드라이브 권한이 빠져/.test(t.textContent); });
   await pg.click('#or-go');
   await pg.waitForFunction(function () { var t = document.querySelector('.center p'); return t && /아직 만든 학급이 없어요/.test(t.textContent); });
@@ -153,6 +153,62 @@ var assert = require('assert');
 
   assert.equal(await pg.evaluate(function () { return window.__fmtError || window.__mock.batchError || ''; }), '');
   assert.deepEqual(errs, []);
+
+  // ===== 로그인 없이 이 기기에만 저장하는 방식 =====
+  var c2 = await b.newContext({ viewport: { width: 1600, height: 900 }, acceptDownloads: true });
+  var lp = await c2.newPage(), errs2 = [];
+  lp.on('pageerror', function (e) { errs2.push(String(e)); });
+  await lp.goto(file);
+  await lp.waitForSelector('#or-local');
+  await lp.click('#or-local');
+  await lp.waitForSelector('#nc-name');
+  assert.ok(/이 기기의 브라우저에 저장/.test(await lp.textContent('.modal')));
+  await lp.fill('#nc-name', '1학년 2반'); await lp.fill('#nc-pw', '1234'); await lp.click('[data-act=createclass]');
+  await lp.waitForSelector('#bulk');
+  await lp.fill('#bulk', '가람 칠판 지우기 2\n나래 우유 나르기');
+  await lp.click('[data-act=bulkset]'); await lp.click('[data-act=saveroster]');
+  await lp.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
+  await lp.click('[data-act=board]'); await lp.waitForSelector('.card');
+  await lp.click('#card-0'); await lp.click('#card-1'); await lp.waitForTimeout(500);
+  assert.equal(await lp.textContent('#num'), '1 / 2');
+
+  // 새로 고쳐도 로그인 없이 그대로, 구글에는 아무 요청도 가지 않는다
+  await lp.reload();
+  await lp.waitForSelector('.card');
+  assert.equal(await lp.locator('#or-login').count(), 0);
+  assert.equal(await lp.locator('#card-0 .slot.on').count(), 1);
+  assert.equal(await lp.locator('#card-1 .slot.on').count(), 1);
+  assert.deepEqual(await lp.evaluate(function () { return [window.__mock.log.length, window.__mock.tokenReqs]; }), [0, 0]);
+  await lp.screenshot({ path: shots + '/local-board.png' });
+
+  // 설정: 내려받기와 백업, 저장 방식 표시
+  await lp.click('[data-act=settings]'); await lp.fill('#pw', '1234'); await lp.click('[data-act=login]');
+  await lp.waitForSelector('.tabs'); await lp.click('[data-act=tab][data-tab=class]');
+  assert.ok(/이 기기의 브라우저에만/.test(await lp.textContent('.sheet')));
+  await lp.screenshot({ path: shots + '/local-settings.png' });
+  var fs = require('fs');
+  var dl = await Promise.all([lp.waitForEvent('download'), lp.click('[data-act=dl][data-sheet="기록"]')]);
+  var csv = fs.readFileSync(await dl[0].path(), 'utf8');
+  assert.ok(csv.indexOf('번호,이름,역할,' + today) >= 0, csv);
+  assert.ok(csv.indexOf('1,가람,칠판 지우기,○') >= 0 && csv.indexOf('2,나래,우유 나르기,○') >= 0, csv);
+  var dl2 = await Promise.all([lp.waitForEvent('download'), lp.click('[data-act=dl][data-sheet="요약"]')]);
+  assert.ok(/1학년 2반 1인 1역 요약/.test(fs.readFileSync(await dl2[0].path(), 'utf8')));
+
+  // 백업 → 브라우저 저장 내용 삭제 → 불러오기
+  var bk = await Promise.all([lp.waitForEvent('download'), lp.click('[data-act=backup]')]);
+  var bkPath = await bk[0].path();
+  await lp.evaluate(function () { Object.keys(localStorage).forEach(function (k) { if (/^or_(book|classes)/.test(k)) localStorage.removeItem(k); }); localStorage.removeItem('c'); });
+  await lp.reload();
+  await lp.waitForSelector('#nc-name');             // 학급이 사라져서 만들기 창이 뜬다
+  await lp.click('[data-act=close]');
+  var n = await lp.evaluate(function (t) { return window.ONE_ROLE.restore(t); }, fs.readFileSync(bkPath, 'utf8'));
+  assert.equal(n, 1);
+  await lp.reload();
+  await lp.waitForSelector('.tags .btn');
+  await lp.click('.tags .btn'); await lp.waitForSelector('.card');
+  assert.equal(await lp.locator('#card-0 .slot.on').count(), 1);
+  assert.deepEqual(errs2, []);
+
   console.log('웹 버전 검사 통과');
   await b.close();
 })().catch(function (e) { console.error(e); process.exit(1); });

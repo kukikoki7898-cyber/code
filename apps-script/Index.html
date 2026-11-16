@@ -267,6 +267,7 @@ function modal(html){
 }
 function closeModal(){ var d = document.getElementById('shade'); if (d) d.parentNode.removeChild(d); }
 function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+function isLocal(){ return !!(window.ONE_ROLE && window.ONE_ROLE.local && window.ONE_ROLE.local()); }
 function iconOf(s){
   if (s.icon) return s.icon;
   for (var i = 0; i < GUESS.length; i++) if ((s.role || '').indexOf(GUESS[i][0]) >= 0) return GUESS[i][1];
@@ -379,7 +380,8 @@ function renderPick(){
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
     '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
-    (BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
+    (isLocal() ? '<p class="hand" style="margin:0 0 14px;font-size:17px">기록은 이 기기의 브라우저에 저장돼요.</p>' :
+     BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
     '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
     '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
@@ -670,14 +672,23 @@ function renderSettings(){
     h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrest">+ 쉬는 날 추가</button><span class="grow"></span><button class="btn yellow" data-act="saverest">저장하기</button></div>';
   } else {
     var ad = S.admin;
+    if (isLocal()) {
+      h += '<h3>기록 보관</h3><p class="note">기록은 <b>이 기기의 브라우저에만</b> 저장돼요. 브라우저의 방문 기록·사이트 데이터를 지우면 함께 사라지니, 가끔 백업 파일을 받아 두세요.</p>' +
+        '<div class="chips"><button class="btn green" data-act="dl" data-sheet="기록">기록 내려받기 (엑셀)</button><button class="btn green" data-act="dl" data-sheet="요약">요약 내려받기 (엑셀)</button></div>' +
+        '<div class="chips"><button class="btn" data-act="backup">백업 파일 저장</button><button class="btn" data-act="restore">백업 파일 불러오기</button>' +
+        '<button class="btn" data-act="newsheet">새 기록장으로 시작 (새 학기)</button></div>' +
+        '<input type="file" id="restore-file" accept=".json,application/json" style="display:none">' +
+        '<h3 style="margin-top:10px">저장 방식</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">로그인 없이 이 기기에 저장 중</span><button class="btn" data-act="mode">저장 방식 바꾸기</button></div></div>';
+    } else {
     h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요.' +
       (BOOT.web ? '' : ' 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.') + '</p><div class="field">' +
       (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
       '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
       '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
-      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
-        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '') +
-      '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
+      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><p class="note" style="margin:0 0 6px">로그인 없이 이 기기에만 저장하려면 <b>저장 방식 바꾸기</b>를 누르세요.</p><div class="row"><button class="btn small" data-act="mode">저장 방식 바꾸기</button></div><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
+        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '');
+    }
+    h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
       (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
@@ -750,13 +761,13 @@ function act(a, el){
     case 'delrest': S.rest.splice(i, 1); render(); break;
     case 'saverest': adminCall('saveRest', [S.rest], function(st){ setState(st); render(); toast('저장했어요.'); }); break;
     case 'newsheet':
-      modal('<h3>새 스프레드시트를 만들까요?</h3><p class="hand" style="font-size:19px">새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.</p>' +
+      modal('<h3>' + (isLocal() ? '새 기록장으로 시작할까요?' : '새 스프레드시트를 만들까요?') + '</h3><p class="hand" style="font-size:19px">' + (isLocal() ? '새 기록장을 만들어 0부터 다시 기록해요. 명단과 쉬는 날은 따라가요. 지난 기록은 먼저 [기록 내려받기]로 받아 두세요.' : '새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.') + '</p>' +
         '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="newsheet2">만들기</button></div>');
       break;
     case 'newsheet2':
       el.disabled = true;
       adminCall('updateClass', [{ newSheet: true }], function(r){
-        closeModal(); toast('새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
+        closeModal(); toast(isLocal() ? '새 기록장으로 바꿨어요.' : '새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
         api('auth', [S.code, S.pw], function(ad){ S.admin = ad; setState(ad.state); S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest)); render(); });
       });
       break;
@@ -774,6 +785,29 @@ function act(a, el){
       break;
     case 'sound': adminCall('updateClass', [{ sound: !S.admin.sound }], function(r){ S.admin.sound = r.sound; S.st.sound = r.sound; render(); }); break;
     case 'pick': store('c', null); S.pw = ''; showPick(); break;
+    case 'dl':
+      var sn = el.getAttribute('data-sheet');
+      window.ONE_ROLE.download('1인1역_' + S.st.name + '_' + sn + '_' + S.st.today + '.csv', window.ONE_ROLE.csv(S.code, sn), 'text/csv;charset=utf-8');
+      break;
+    case 'backup': window.ONE_ROLE.download('1인1역_백업_' + S.st.today + '.json', window.ONE_ROLE.backup(), 'application/json'); toast('백업 파일을 저장했어요.'); break;
+    case 'restore':
+      var fi = document.getElementById('restore-file');
+      fi.onchange = function(){
+        var f = fi.files && fi.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function(){
+          try { var n = window.ONE_ROLE.restore(String(rd.result)); toast(n + '개 학급을 불러왔어요.'); store('c', null); S.pw = ''; showPick(); }
+          catch (e) { toast(e.message || '백업 파일을 읽지 못했어요.'); }
+        };
+        rd.readAsText(f);
+      };
+      fi.click();
+      break;
+    case 'mode':
+      modal('<h3>저장 방식을 바꿀까요?</h3><p class="hand" style="font-size:19px">지금까지의 기록은 그대로 남지만, 다른 저장 방식으로 옮겨지지는 않아요. 바꾼 뒤에는 학급을 새로 만들어야 해요.</p>' +
+        '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="mode2">바꾸기</button></div>');
+      break;
+    case 'mode2': window.ONE_ROLE.changeMode(); break;
     case 'logout': store('c', null); S.pw = ''; S.admin = null; window.ONE_ROLE.logout(); showPick(); break;
     case 'delclass':
       modal('<h3>이 학급을 지울까요?</h3><p class="hand" style="font-size:19px">학급 목록에서만 사라지고, 스프레드시트와 기록은 그대로 남아요.</p>' +

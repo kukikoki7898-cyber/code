@@ -233,7 +233,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-16 11:41";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-16 11:49";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -1163,6 +1163,41 @@ function 설치점검() {
     try { client.requestAccessToken(opt); } catch (e) { failToken('error'); }
   }
 
+  /* ----- 저장 방식: 'google' = 구글 로그인 + 구글 시트, 'local' = 로그인 없이 이 기기의 브라우저에만 ----- */
+  var mode = ls('or_mode') || '', modeWaiters = [];
+  function isLocal() { return mode === 'local'; }
+  function setMode(m) {
+    mode = m; ls('or_mode', m); hideLogin();
+    if (m === 'local' && navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch (e) { /* 무시 */ } }
+    var w = modeWaiters; modeWaiters = [];
+    for (var i = 0; i < w.length; i++) w[i]();
+  }
+  function ensureMode() {
+    if (mode) return Promise.resolve();
+    return new Promise(function (resolve) { modeWaiters.push(resolve); showChooser(); });
+  }
+  function showChooser() {
+    var d = document.getElementById('or-login');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'or-login';
+      d.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:200;display:flex;align-items:center;justify-content:center;' +
+        'background:rgba(43,42,40,.55);padding:16px;font-family:Jua,sans-serif;overflow:auto';
+      document.body.appendChild(d);
+    }
+    var card = 'display:block;width:100%;text-align:left;font:inherit;cursor:pointer;margin-top:12px;padding:14px 16px;border:2.5px solid #2b2a28;' +
+      'border-radius:14px;box-shadow:3px 4px 0 rgba(43,42,40,.22);';
+    d.innerHTML = '<div style="background:#fffdf6;border:3px solid #2b2a28;border-radius:14px 22px 16px 24px / 22px 14px 24px 16px;padding:24px;max-width:520px;width:100%;box-shadow:6px 8px 0 rgba(43,42,40,.3)">' +
+      '<div style="font-size:27px;text-align:center">기록을 어디에 저장할까요?</div>' +
+      '<button id="or-local" style="' + card + 'background:#f7cf3d"><span style="font-size:22px">바로 시작하기 <small style="font-size:15px">(로그인 없음)</small></span>' +
+      '<br><span style="font:15px/1.5 sans-serif">이 기기의 브라우저에만 저장해요. 다른 기기에서는 볼 수 없고, 엑셀 파일로 내려받을 수 있어요.</span></button>' +
+      (CFG.clientId ? '<button id="or-google" style="' + card + 'background:#fff"><span style="font-size:22px">구글 시트에 저장하기 <small style="font-size:15px">(구글 로그인)</small></span>' +
+      '<br><span style="font:15px/1.5 sans-serif">내 구글 드라이브의 스프레드시트에 저장해요. 어느 기기에서든 로그인하면 이어서 쓸 수 있어요.</span></button>' : '') +
+      '<div style="margin-top:14px;font:12px sans-serif;color:#999;text-align:center">나중에 설정에서 바꿀 수 있어요 · 버전 ' + (g.ONE_ROLE_BUILD || '-') + '</div></div>';
+    document.getElementById('or-local').onclick = function () { setMode('local'); };
+    var gg = document.getElementById('or-google');
+    if (gg) gg.onclick = function () { setMode('google'); requestToken(false); };
+  }
+
   function getToken() {
     if (tokenOk()) return Promise.resolve(tok);
     return new Promise(function (resolve) {
@@ -1173,7 +1208,7 @@ function 설치점검() {
 
   // 화면을 누를 때마다 확인해서, 로그인이 곧 끝나거나 끝났으면 그 누름을 이용해 조용히 갱신한다.
   document.addEventListener('click', function (ev) {
-    if (!CFG.clientId || !email || requesting) return;
+    if (mode !== 'google' || !CFG.clientId || !email || requesting) return;
     if (ev.target && ev.target.closest && ev.target.closest('#or-login')) return;
     if (!tokenOk(8 * 60 * 1000)) requestToken(false);
   }, true);
@@ -1212,6 +1247,49 @@ function 설치점검() {
       try { if (tok && g.google && g.google.accounts) g.google.accounts.oauth2.revoke(tok, function () {}); } catch (e) { /* 무시 */ }
       tok = null; tokExp = 0; email = ''; ls('or_email', null);
       books = {}; classes = {}; listAt = 0;
+    },
+    local: isLocal,
+    // 저장 방식을 다시 고르게 한다. 이미 저장된 기록은 그대로 남는다.
+    changeMode: function () { ls('or_mode', null); ls('c', null); g.location.reload(); },
+    // 시트 한 장을 엑셀에서 열리는 CSV 글자로 돌려준다. (불러와 둔 학급만)
+    csv: function (code, sheetName) {
+      var c = classes[code], b = c && books[c.sheetId], sh = b && b.getSheetByName(sheetName);
+      if (!sh) return '';
+      var v = sh.getDataRange().getValues(), out = [];
+      for (var i = 0; i < v.length; i++) {
+        var line = [];
+        for (var j = 0; j < v[i].length; j++) {
+          var x = v[i][j]; x = typeof x === 'number' && sheetName === '요약' && j === 12 ? Math.round(x * 100) + '%' : String(x);
+          line.push(/[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x);
+        }
+        out.push(line.join(','));
+      }
+      return '\uFEFF' + out.join('\r\n');
+    },
+    download: function (name, text, type) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain;charset=utf-8' }));
+      a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 2000);
+    },
+    // 이 기기에 저장된 모든 학급을 파일 하나로 묶는다 / 되돌린다.
+    backup: function () {
+      var out = { app: 'oneRole', saved: new Date().toISOString(), classes: JSON.parse(ls('or_classes') || '{}'), books: {} };
+      for (var code in out.classes) out.books[out.classes[code].sheetId] = JSON.parse(ls('or_book_' + out.classes[code].sheetId) || 'null');
+      return JSON.stringify(out);
+    },
+    restore: function (text) {
+      var d = JSON.parse(text);
+      if (!d || d.app !== 'oneRole' || !d.classes || !d.books) throw new Error('1인 1역 백업 파일이 아니에요.');
+      var cur = JSON.parse(ls('or_classes') || '{}'), n = 0;
+      for (var code in d.classes) {
+        var id = d.classes[code].sheetId;
+        if (!d.books[id]) continue;
+        put('or_book_' + id, JSON.stringify(d.books[id])); cur[code] = d.classes[code]; n++;
+      }
+      put('or_classes', JSON.stringify(cur));
+      books = {}; classes = {}; listAt = 0;
+      return n;
     },
     // 자동 검사에서만 쓴다.
     _test: { expire: function () { tokExp = 0; }, stale: function () { stale(); } }
@@ -1442,6 +1520,7 @@ function 설치점검() {
     newConditionalFormatRule: ruleBuilder,
     openById: function (id) {
       var b = books[id], now = Date.now();
+      if (b && b.freshAt && isLocal()) return b;
       if (!b || now - b.freshAt > FRESH_MS || now - b.readAt > MAX_AGE_MS) throw need('load', id);
       return b;
     },
@@ -1451,7 +1530,28 @@ function 설치점검() {
     }
   };
 
+  /** 반드시 저장되어야 하는 값에 쓴다. 저장하지 못하면 알린다. */
+  function put(k, v) {
+    try { localStorage.setItem(k, v); }
+    catch (e) { throw new Error('이 기기에 저장하지 못했어요. 브라우저의 저장 공간이 꽉 찼거나 시크릿 창일 수 있어요.'); }
+  }
+  function saveLocal(b) {
+    put('or_book_' + b.id, JSON.stringify({ sheets: b.sheets.map(function (sh) {
+      return { p: { sheetId: sh.sheetId, title: sh.name, gridProperties: { rowCount: sh.maxR, columnCount: sh.maxC } }, d: sh.d };
+    }) }));
+  }
+  function loadLocal(id) {
+    var raw = ls('or_book_' + id);
+    if (!raw) return Promise.reject(new Error('기록을 찾을 수 없어요. 이 기기의 브라우저 저장 내용이 지워진 것 같아요. 백업 파일이 있으면 설정에서 불러와 주세요.'));
+    var data = JSON.parse(raw), b = new Book(id);
+    for (var i = 0; i < data.sheets.length; i++) { var sh = new Sheet(b, data.sheets[i].p, 0); sh.d = data.sheets[i].d || []; b.sheets.push(sh); }
+    b.readAt = b.freshAt = Date.now();
+    books[id] = b;
+    return Promise.resolve(b);
+  }
+
   function loadBook(id) {
+    if (isLocal()) return loadLocal(id);
     var meta;
     return http('GET', SHEETS + '/' + id + '?fields=' + encodeURIComponent('sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)),conditionalFormats)'), undefined, '시트 구성 읽기')
       .then(function (m) {
@@ -1474,6 +1574,13 @@ function 설치점검() {
 
   // 새 스프레드시트는 드라이브 API 로 만든다. drive.file 권한에서 "이 앱이 만든 파일"로 확실히 인정받는 방법이다.
   function createBook(title) {
+    if (isLocal()) {
+      var b = new Book('local' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36));
+      b.sheets.push(new Sheet(b, { sheetId: 0, title: '시트1' }, 0));
+      b.readAt = b.freshAt = Date.now();
+      books[b.id] = b; premade[title] = b;
+      return Promise.resolve();
+    }
     return http('POST', DRIVE + '?fields=id', { name: title, mimeType: 'application/vnd.google-apps.spreadsheet' }, '새 스프레드시트 만들기')
       .then(function (r) { return loadBook(r.id); })
       .then(function (b) { premade[title] = b; });
@@ -1484,6 +1591,7 @@ function 설치점검() {
   var classes = {}, listAt = 0, misc = {};
 
   function loadList() {
+    if (isLocal()) { classes = JSON.parse(ls('or_classes') || '{}'); listAt = Date.now(); return Promise.resolve(); }
     var q = "appProperties has { key='oneRole' and value='1' } and trashed=false";
     return http('GET', DRIVE + '?pageSize=200&fields=' + encodeURIComponent('files(id,appProperties)') + '&q=' + encodeURIComponent(q), undefined, '학급 목록 읽기').then(function (r) {
       classes = {};
@@ -1591,6 +1699,13 @@ function 설치점검() {
   }
 
   function flush(ctx) {
+    if (isLocal()) {
+      try {
+        for (var i = 0; i < ctx.order.length; i++) { var o = ctx[ctx.order[i]]; saveLocal(o.book); o.book.freshAt = Date.now(); }
+        if (ctx.drive.length) put('or_classes', JSON.stringify(classes));
+      } catch (e) { return Promise.reject(e); }
+      return Promise.resolve();
+    }
     return seq(ctx.order, function (id) {
       var o = ctx[id], base = SHEETS + '/' + id, p = Promise.resolve();
       if (o.struct.length) p = p.then(function () { return http('POST', base + ':batchUpdate', { requests: o.struct }, '시트 만들기'); });
@@ -1611,8 +1726,9 @@ function 설치점검() {
   function stale() { for (var id in books) books[id].freshAt = 0; }
 
   function exec(name, args, tries) {
-    var pre = name === 'listClasses' ? loadList() : Promise.resolve();
-    return pre.then(function () {
+    return ensureMode().then(function () {
+      return name === 'listClasses' || (isLocal() && !listAt) ? loadList() : null;
+    }).then(function () {
       var res;
       P = { order: [], drive: [] };
       try {
@@ -1654,7 +1770,7 @@ function 설치점검() {
   }
   g.__RUN = function () { return runner(null, null); };
 
-  if (!CFG.clientId) g.addEventListener('load', function () { showLogin(''); });
+
 })(window);
 
 </script>
@@ -1699,6 +1815,7 @@ function modal(html){
 }
 function closeModal(){ var d = document.getElementById('shade'); if (d) d.parentNode.removeChild(d); }
 function val(id){ var e = document.getElementById(id); return e ? e.value : ''; }
+function isLocal(){ return !!(window.ONE_ROLE && window.ONE_ROLE.local && window.ONE_ROLE.local()); }
 function iconOf(s){
   if (s.icon) return s.icon;
   for (var i = 0; i < GUESS.length; i++) if ((s.role || '').indexOf(GUESS[i][0]) >= 0) return GUESS[i][1];
@@ -1811,7 +1928,8 @@ function renderPick(){
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
     '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
-    (BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
+    (isLocal() ? '<p class="hand" style="margin:0 0 14px;font-size:17px">기록은 이 기기의 브라우저에 저장돼요.</p>' :
+     BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
     '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
     '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
@@ -2102,14 +2220,23 @@ function renderSettings(){
     h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrest">+ 쉬는 날 추가</button><span class="grow"></span><button class="btn yellow" data-act="saverest">저장하기</button></div>';
   } else {
     var ad = S.admin;
+    if (isLocal()) {
+      h += '<h3>기록 보관</h3><p class="note">기록은 <b>이 기기의 브라우저에만</b> 저장돼요. 브라우저의 방문 기록·사이트 데이터를 지우면 함께 사라지니, 가끔 백업 파일을 받아 두세요.</p>' +
+        '<div class="chips"><button class="btn green" data-act="dl" data-sheet="기록">기록 내려받기 (엑셀)</button><button class="btn green" data-act="dl" data-sheet="요약">요약 내려받기 (엑셀)</button></div>' +
+        '<div class="chips"><button class="btn" data-act="backup">백업 파일 저장</button><button class="btn" data-act="restore">백업 파일 불러오기</button>' +
+        '<button class="btn" data-act="newsheet">새 기록장으로 시작 (새 학기)</button></div>' +
+        '<input type="file" id="restore-file" accept=".json,application/json" style="display:none">' +
+        '<h3 style="margin-top:10px">저장 방식</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">로그인 없이 이 기기에 저장 중</span><button class="btn" data-act="mode">저장 방식 바꾸기</button></div></div>';
+    } else {
     h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요.' +
       (BOOT.web ? '' : ' 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.') + '</p><div class="field">' +
       (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
       '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
       '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
-      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
-        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '') +
-      '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
+      (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><p class="note" style="margin:0 0 6px">로그인 없이 이 기기에만 저장하려면 <b>저장 방식 바꾸기</b>를 누르세요.</p><div class="row"><button class="btn small" data-act="mode">저장 방식 바꾸기</button></div><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
+        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '');
+    }
+    h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
       (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
@@ -2182,13 +2309,13 @@ function act(a, el){
     case 'delrest': S.rest.splice(i, 1); render(); break;
     case 'saverest': adminCall('saveRest', [S.rest], function(st){ setState(st); render(); toast('저장했어요.'); }); break;
     case 'newsheet':
-      modal('<h3>새 스프레드시트를 만들까요?</h3><p class="hand" style="font-size:19px">새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.</p>' +
+      modal('<h3>' + (isLocal() ? '새 기록장으로 시작할까요?' : '새 스프레드시트를 만들까요?') + '</h3><p class="hand" style="font-size:19px">' + (isLocal() ? '새 기록장을 만들어 0부터 다시 기록해요. 명단과 쉬는 날은 따라가요. 지난 기록은 먼저 [기록 내려받기]로 받아 두세요.' : '새 파일을 만들어 그쪽에 기록해요. 명단과 쉬는 날은 따라가고, 지금 시트와 지난 기록은 그대로 남아요.') + '</p>' +
         '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="newsheet2">만들기</button></div>');
       break;
     case 'newsheet2':
       el.disabled = true;
       adminCall('updateClass', [{ newSheet: true }], function(r){
-        closeModal(); toast('새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
+        closeModal(); toast(isLocal() ? '새 기록장으로 바꿨어요.' : '새 스프레드시트를 만들었어요. [열어 보기]로 확인해 보세요.');
         api('auth', [S.code, S.pw], function(ad){ S.admin = ad; setState(ad.state); S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest)); render(); });
       });
       break;
@@ -2206,6 +2333,29 @@ function act(a, el){
       break;
     case 'sound': adminCall('updateClass', [{ sound: !S.admin.sound }], function(r){ S.admin.sound = r.sound; S.st.sound = r.sound; render(); }); break;
     case 'pick': store('c', null); S.pw = ''; showPick(); break;
+    case 'dl':
+      var sn = el.getAttribute('data-sheet');
+      window.ONE_ROLE.download('1인1역_' + S.st.name + '_' + sn + '_' + S.st.today + '.csv', window.ONE_ROLE.csv(S.code, sn), 'text/csv;charset=utf-8');
+      break;
+    case 'backup': window.ONE_ROLE.download('1인1역_백업_' + S.st.today + '.json', window.ONE_ROLE.backup(), 'application/json'); toast('백업 파일을 저장했어요.'); break;
+    case 'restore':
+      var fi = document.getElementById('restore-file');
+      fi.onchange = function(){
+        var f = fi.files && fi.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function(){
+          try { var n = window.ONE_ROLE.restore(String(rd.result)); toast(n + '개 학급을 불러왔어요.'); store('c', null); S.pw = ''; showPick(); }
+          catch (e) { toast(e.message || '백업 파일을 읽지 못했어요.'); }
+        };
+        rd.readAsText(f);
+      };
+      fi.click();
+      break;
+    case 'mode':
+      modal('<h3>저장 방식을 바꿀까요?</h3><p class="hand" style="font-size:19px">지금까지의 기록은 그대로 남지만, 다른 저장 방식으로 옮겨지지는 않아요. 바꾼 뒤에는 학급을 새로 만들어야 해요.</p>' +
+        '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="mode2">바꾸기</button></div>');
+      break;
+    case 'mode2': window.ONE_ROLE.changeMode(); break;
     case 'logout': store('c', null); S.pw = ''; S.admin = null; window.ONE_ROLE.logout(); showPick(); break;
     case 'delclass':
       modal('<h3>이 학급을 지울까요?</h3><p class="hand" style="font-size:19px">학급 목록에서만 사라지고, 스프레드시트와 기록은 그대로 남아요.</p>' +
