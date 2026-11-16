@@ -5,6 +5,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>우리 반 1인 1역</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#f6ecd2">
 <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Jua&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -1778,8 +1781,9 @@ function renderPick(){
   h += '<p class="hand">' + (S.classes.length ? '우리 반 이름표를 눌러 주세요' : '아직 만든 학급이 없어요') + '</p><div class="tags">';
   for (var i = 0; i < S.classes.length; i++)
     h += '<button class="btn" style="background:' + ['#ffd6cb','#fff0a3','#d3edc4','#cbe4f6','#f9cfde','#ffe4b8'][i % 6] + ';transform:rotate(' + ((i % 3) - 1) * 1.5 + 'deg)" data-act="open" data-code="' + esc(S.classes[i].code) + '">' + esc(S.classes[i].name) + '</button>';
-  h += '</div><button class="btn small" data-act="newclass">+ 새 학급 만들기 (선생님)</button></div>';
+  h += '</div><button class="btn ' + (S.classes.length ? 'small' : 'yellow') + '" data-act="newclass">+ 새 학급 만들기 (선생님)</button></div>';
   app.innerHTML = h;
+  if (!S.classes.length) newClassModal();
 }
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
@@ -1858,7 +1862,7 @@ function renderBoard(){
     h += '<div class="center" style="min-height:60vh"><h2>오늘은 쉬는 날이에요</h2><p class="hand">' + esc(st.rest) + ' · 푹 쉬고 다음에 만나요!</p>' +
       '<button class="btn plain small" data-act="force">그래도 오늘 기록하기</button></div>';
   } else if (!a.length) {
-    h += '<div class="center" style="min-height:60vh"><h2>아직 이름표가 없어요</h2><p class="hand">선생님이 [설정]에서 친구들과 역할을 넣어 주세요</p></div>';
+    h += '<div class="center" style="min-height:60vh"><h2>아직 이름표가 없어요</h2><p class="hand">선생님이 친구들과 역할을 넣어 주세요</p><button class="btn yellow" data-act="settings">친구 넣으러 가기</button></div>';
   } else {
     h += '<div class="grid" id="grid">';
     for (var i = 0; i < a.length; i++) h += cardHtml(a[i], i);
@@ -1984,11 +1988,59 @@ function askPw(){
 }
 function login(){
   var pw = val('pw'); if (!pw) return;
+  enterSettings(pw);
+}
+function enterSettings(pw, then){
   api('auth', [S.code, pw], function(ad){
     closeModal(); S.pw = pw; S.admin = ad; setState(ad.state);
     S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest));
     S.view = 'settings'; S.tab = 'roster'; render();
+    if (then) then();
   });
+}
+
+/* 명단을 한꺼번에 붙여 넣기: 한 줄에 한 명. "이름 역할", "번호 이름 역할 횟수", 엑셀에서 복사한 칸도 된다. */
+function parseBulk(text){
+  var out = [], lines = String(text).split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) {
+    var t = lines[i].replace(/^\s+|\s+$/g, ''), parts, no = '';
+    if (!t) continue;
+    if (t.indexOf('\t') >= 0) parts = t.split('\t');
+    else if (t.indexOf(',') >= 0) parts = t.split(',');
+    else {
+      var m = t.match(/^(\d+)[.)\s]+(.+)$/);
+      if (m) { no = m[1]; t = m[2]; }
+      var sp = t.search(/\s/);
+      parts = sp < 0 ? [t] : [t.slice(0, sp), t.slice(sp + 1)];
+      var c = (parts[1] || '').match(/^(.*\S)\s+([1-5])\s*(번|회)?$/);
+      if (c) { parts[1] = c[1]; parts[2] = c[2]; }
+    }
+    for (var k = 0; k < parts.length; k++) parts[k] = parts[k].replace(/^\s+|\s+$/g, '');
+    if (!no && parts.length > 1 && /^\d+$/.test(parts[0])) no = parts.shift();
+    if (!parts[0] || parts[0] === '이름') continue;
+    out.push({ no: no, name: parts[0].slice(0, 12), role: (parts[1] || '').slice(0, 20), icon: '', target: Math.max(1, Math.min(5, parseInt(parts[2], 10) || 1)) });
+  }
+  return out;
+}
+function bulkModal(first){
+  modal('<h3>' + (first ? '우리 반 친구들을 넣어 주세요' : '한꺼번에 붙여 넣기') + '</h3>' +
+    '<p class="hand" style="font-size:18px;margin:0 0 8px;line-height:1.35">한 줄에 한 명씩 <b>이름 역할</b> 순서로 적어요. 엑셀이나 한글 표에서 복사해 붙여 넣어도 돼요. 역할은 나중에 적어도 됩니다.</p>' +
+    '<textarea class="in" id="bulk" rows="9" style="width:100%;font-size:18px;line-height:1.5" placeholder="김하늘 칠판 지우기&#10;이바다 우유 나르기&#10;박구름 화분 물 주기"></textarea>' +
+    '<div class="btns">' + (first ? '<button class="btn" data-act="close">나중에 하기</button>' : '<button class="btn" data-act="close">취소</button><button class="btn" data-act="bulkadd">지금 명단에 더하기</button>') +
+    '<button class="btn yellow" data-act="bulkset">' + (first ? '넣기' : '전부 바꾸기') + '</button></div>');
+  var m = document.querySelector('#shade .modal'); if (m) m.style.width = '560px';
+}
+function applyBulk(replace){
+  var list = parseBulk(val('bulk'));
+  if (!list.length) { toast('이름을 한 줄에 한 명씩 적어 주세요.'); return; }
+  var base = replace ? [] : S.edit.filter(function(e){ return e.name; }), used = {}, next = 1, i;
+  for (i = 0; i < base.length; i++) used[base[i].no] = true;
+  for (i = 0; i < list.length; i++) {
+    if (!list[i].no || used[list[i].no]) { while (used[String(next)]) next++; list[i].no = String(next); }
+    used[list[i].no] = true; base.push(list[i]);
+  }
+  S.edit = base; closeModal(); render();
+  toast(list.length + '명을 넣었어요. 확인하고 [저장하기]를 눌러 주세요.');
 }
 function renderSettings(){
   var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['class','시트 · 비밀번호']];
@@ -2007,7 +2059,7 @@ function renderSettings(){
         '<button class="btn small cnt" data-act="cnt" data-i="' + r + '">' + e.target + '번</button>' +
         '<button class="btn small" data-act="delrow" data-i="' + r + '">✕</button></div>';
     }
-    h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrow">+ 친구 추가</button><span class="grow"></span><button class="btn yellow" data-act="saveroster">저장하기</button></div>';
+    h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrow">+ 친구 추가</button><button class="btn" data-act="bulk">한꺼번에 붙여 넣기</button><span class="grow"></span><button class="btn yellow" data-act="saveroster">저장하기</button></div>';
   } else if (S.tab === 'absent') {
     h += '<h3>오늘 결석한 친구</h3><p class="note">이름을 누르면 결석으로 바뀌어요. 결석한 날은 스티커 통계에서 빠집니다.</p><div class="chips">';
     for (var a = 0; a < S.st.students.length; a++) {
@@ -2061,9 +2113,17 @@ function act(a, el){
     case 'close': closeModal(); break;
     case 'createclass':
       el.disabled = true;
-      api('createClass', [val('nc-name'), val('nc-url'), val('nc-pw')], function(r){ closeModal(); openClass(r.code); toast('학급을 만들었어요. [설정]에서 친구들을 넣어 주세요.'); },
-        function(m){ el.disabled = false; toast(m); });
+      var npw = val('nc-pw');
+      api('createClass', [val('nc-name'), val('nc-url'), npw], function(r){
+        // 만든 김에 바로 명단 넣는 화면으로 간다.
+        closeModal(); S.code = r.code; S.force = false; store('c', r.code);
+        app.innerHTML = '<div class="center"><h2>학급을 만들었어요!</h2></div>';
+        enterSettings(npw, function(){ bulkModal(true); });
+      }, function(m){ el.disabled = false; toast(m); });
       break;
+    case 'bulk': bulkModal(false); break;
+    case 'bulkadd': applyBulk(false); break;
+    case 'bulkset': applyBulk(true); break;
     case 'stamp': stamp(i); break;
     case 'undo': undo(i); break;
     case 'force': S.force = true; render(); break;
@@ -2086,7 +2146,7 @@ function act(a, el){
       break;
     case 'pickemoji': S.edit[i].icon = el.getAttribute('data-e'); closeModal(); render(); break;
     case 'saveroster':
-      adminCall('saveRoster', [S.edit], function(st){ setState(st); S.edit = rosterOf(st); render(); toast('저장했어요.'); });
+      adminCall('saveRoster', [S.edit], function(st){ setState(st); S.edit = rosterOf(st); render(); toast('저장했어요. [칠판으로]를 누르면 이름표가 보여요.'); });
       break;
     case 'absent':
       var s = S.st.students[i];
