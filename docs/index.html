@@ -233,6 +233,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>window.ONE_ROLE_BUILD = "2026-11-16 11:37";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -1121,11 +1122,11 @@ function 설치점검() {
     requesting = false; clearTimeout(reqTimer);
     // 구글 권한 화면은 항목마다 체크하는 방식이라, 드라이브 칸을 빼고 허용하면 저장할 수 없는 로그인이 된다.
     if (String(r.scope || '').indexOf('auth/drive.file') < 0) {
-      tok = null; tokExp = 0; askConsent = true;
+      tok = null; tokExp = 0; askConsent = true; lastWhy = 'no_drive_scope';
       showLogin(NEED_BOX);
       return;
     }
-    askConsent = false;
+    askConsent = false; lastWhy = '';
     tok = r.access_token;
     tokExp = Date.now() + (parseInt(r.expires_in, 10) || 3600) * 1000;
     hideLogin();
@@ -1140,16 +1141,20 @@ function 설치점검() {
     }
   }
 
+  var lastWhy = '';   // 문제를 찾기 쉽도록 마지막 로그인 결과를 로그인 창 아래에 작게 보여 준다
   function failToken(why) {
     requesting = false; clearTimeout(reqTimer);
-    showLogin(why === 'popup_failed_to_open' ? '로그인 창이 막혔어요. 아래 버튼을 눌러 주세요.' :
-      why === 'access_denied' ? '권한을 허용해야 기록을 저장할 수 있어요.' : '');
+    lastWhy = String(why || '');
+    showLogin(why === 'popup_failed_to_open' ? '로그인 창이 막혔어요. 주소창 오른쪽의 팝업 차단 표시를 눌러 <b>항상 허용</b>으로 바꾼 뒤 아래 버튼을 눌러 주세요.' :
+      why === 'popup_closed' ? '로그인 창이 닫혔어요. 다시 눌러 계정을 고르고 <b>계속</b>을 눌러 주세요.' :
+      why === 'access_denied' ? '권한을 허용해야 기록을 저장할 수 있어요.' :
+      why === 'timeout' ? '로그인 응답이 없어요. 팝업 창이 뒤에 숨어 있지 않은지 확인하고 다시 눌러 주세요.' : '');
   }
 
   /** 로그인 창을 연다. 브라우저가 창을 막지 않도록 반드시 누르는 동작 안에서 불러야 한다. */
   function requestToken(pick) {
     if (requesting) return;
-    if (!gis()) { showLogin('구글 로그인 준비 중이에요. 잠시 후 다시 눌러 주세요.'); return; }
+    if (!gis()) { lastWhy = 'gis_not_loaded'; showLogin('구글 로그인 도구를 불러오지 못했어요. 인터넷 연결을 확인하고, 광고 차단 프로그램을 쓰고 있다면 이 주소에서는 꺼 주세요. 그런 다음 새로 고쳐 주세요.'); return; }
     requesting = true;
     clearTimeout(reqTimer);
     reqTimer = setTimeout(function () { if (requesting) failToken('timeout'); }, 90000);
@@ -1192,6 +1197,7 @@ function 설치점검() {
       '<div style="font-size:17px;line-height:1.5;margin-bottom:16px">' + (msg || (email ? esc(email) + ' 계정으로 이어서 씁니다.' : '기록은 로그인한 계정의 구글 드라이브에 저장돼요.')) + '</div>' +
       '<button id="or-go" style="font:inherit;font-size:22px;padding:12px 26px;background:#f7cf3d;border:2.5px solid #2b2a28;border-radius:14px;cursor:pointer;box-shadow:3px 4px 0 rgba(43,42,40,.22)">구글로 로그인</button>' +
       (email ? '<div style="margin-top:14px"><button id="or-other" style="font:inherit;font-size:16px;background:none;border:0;text-decoration:underline;cursor:pointer">다른 계정으로 로그인</button></div>' : '') +
+      '<div style="margin-top:14px;font:12px sans-serif;color:#999">버전 ' + (g.ONE_ROLE_BUILD || '-') + (lastWhy ? ' · 상태: ' + esc(lastWhy) : '') + '</div>' +
       '</div>';
     document.getElementById('or-go').onclick = function () { requestToken(false); };
     var o = document.getElementById('or-other');

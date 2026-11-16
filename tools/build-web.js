@@ -15,6 +15,7 @@ if (/<\/script/i.test(code)) throw new Error('Code.gs 안에 </script 가 있으
 var parts = [
   mock ? '<script>window.ONE_ROLE_CONFIG = { clientId: "mock" };</script>\n<script>' + read('test/mock-google.js') + '</script>'
        : '<script src="config.js"></script>\n<script src="https://accounts.google.com/gsi/client" async defer></script>',
+  '<script>window.ONE_ROLE_BUILD = "' + new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ') + '";</script>',
   '<script>\n' + code + '\n</script>',
   '<script>\n' + read('web/adapter.js') + '\n</script>',
   '<script>var BOOT = { c: (location.search.match(/[?&]c=([a-z0-9]+)/) || [])[1] || "", url: location.origin + location.pathname, web: true };</script>'
