@@ -10,7 +10,12 @@
     initTokenClient: function (cfg) {
       return { requestAccessToken: function (opt) {
         M.tokenReqs++; M.lastOpt = opt;
-        setTimeout(function () { M.valid = 'tok' + M.tokenReqs; cfg.callback({ access_token: M.valid, expires_in: M.expires }); }, 40);
+        setTimeout(function () {
+          M.valid = 'tok' + M.tokenReqs;
+          var scope = M.skipDrive ? 'https://www.googleapis.com/auth/userinfo.email' : cfg.scope;
+          M.skipDrive = false;
+          cfg.callback({ access_token: M.valid, expires_in: M.expires, scope: scope });
+        }, 40);
       } };
     },
     revoke: function (t, cb) { M.valid = null; if (cb) cb(); }

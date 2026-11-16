@@ -51,8 +51,18 @@
     return true;
   }
 
+  var askConsent = false;   // 참이면 다음 로그인 때 권한 화면을 다시 보여 준다
+  var NEED_BOX = '권한 화면에서 <b>"이 앱에서 사용하는 Google Drive 파일만 보기, 수정, 생성, 삭제"</b> 네모 칸에 체크해야 기록을 저장할 수 있어요. 다시 로그인해서 체크해 주세요.';
+
   function gotToken(r) {
     requesting = false; clearTimeout(reqTimer);
+    // 구글 권한 화면은 항목마다 체크하는 방식이라, 드라이브 칸을 빼고 허용하면 저장할 수 없는 로그인이 된다.
+    if (String(r.scope || '').indexOf('auth/drive.file') < 0) {
+      tok = null; tokExp = 0; askConsent = true;
+      showLogin(NEED_BOX);
+      return;
+    }
+    askConsent = false;
     tok = r.access_token;
     tokExp = Date.now() + (parseInt(r.expires_in, 10) || 3600) * 1000;
     hideLogin();
@@ -79,7 +89,7 @@
     requesting = true;
     clearTimeout(reqTimer);
     reqTimer = setTimeout(function () { if (requesting) failToken('timeout'); }, 90000);
-    var opt = { prompt: pick ? 'select_account' : '' };
+    var opt = { prompt: pick ? 'select_account' : askConsent ? 'consent' : '' };
     if (email && !pick) opt.login_hint = email;
     try { client.requestAccessToken(opt); } catch (e) { failToken('error'); }
   }
@@ -151,6 +161,12 @@
       return res.json().catch(function () { return {}; }).then(function (j) {
         var raw = (j && j.error && j.error.message) || ('HTTP ' + res.status);
         if (res.status === 401) { tok = null; tokExp = 0; }
+        if (res.status === 403 && /insufficient authentication scopes/i.test(raw)) {
+          tok = null; tokExp = 0; askConsent = true;
+          var e2 = new Error('구글 드라이브 권한이 빠져 있어요. 다시 로그인하면서 드라이브 칸에 체크해 주세요.'); e2.status = 403;
+          setTimeout(function () { showLogin(NEED_BOX); }, 0);
+          throw e2;
+        }
         var msg = res.status === 401 ? '로그인이 끝났어요. 화면을 한 번 더 눌러 주세요.' :
           res.status === 429 ? '요청이 잠깐 몰렸어요. 곧 다시 저장합니다.' :
           res.status === 404 ? '스프레드시트를 찾을 수 없어요. 드라이브에서 지워졌을 수 있어요.' :
