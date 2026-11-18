@@ -24,7 +24,8 @@ async function longPress(p, sel) {
 function on(p, i) { return p.evaluate(function (i) { return document.querySelectorAll('#card-' + i + ' .slot.on').length; }, i); }
 
 (async function () {
-  var web = 'file://' + process.argv[2], gas = 'file://' + process.argv[3], shots = process.argv[4];
+  var u = function (x) { return /^https?:/.test(x) ? x : 'file://' + x; };
+  var web = u(process.argv[2]), gas = u(process.argv[3]), shots = process.argv[4];
   var b = await chromium.launch();
   var ctx = await b.newContext({ viewport: { width: 1600, height: 900 }, acceptDownloads: true });
   // 음성은 기기마다 달라서, 무엇을 말하려 했는지만 받아 적는다.
