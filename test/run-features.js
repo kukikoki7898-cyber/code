@@ -59,7 +59,7 @@ function on(p, i) { return p.evaluate(function (i) { return document.querySelect
   await p.click('[data-act=tundo]'); await p.waitForTimeout(500);
   check('2-4. 선생님 메뉴에서 도장을 지운다', await on(p, 0) === 0, await on(p, 0));
   await longPress(p, '#card-1');
-  check('2-5. 5분 안에는 비밀번호를 다시 묻지 않는다', await p.locator('#tpw').count() === 0 && await p.locator('[data-act=tabsent]').count() === 1);
+  check('2-5. 연달아 고칠 때(1분 안)는 비밀번호를 다시 묻지 않는다', await p.locator('#tpw').count() === 0 && await p.locator('[data-act=tabsent]').count() === 1);
   await p.click('[data-act=tabsent]'); await toast(p, /결석으로 표시/);
   check('2-6. 선생님 메뉴에서 결석 표시', await p.locator('#card-1.absent').count() === 1);
   await longPress(p, '#card-1'); await p.click('[data-act=tabsent]'); await toast(p, /결석을 풀었어요/);
