@@ -542,7 +542,8 @@
       for (var i = 0; i < f.length; i++) {
         var a = f[i].appProperties || {};
         if (!a.code || classes[a.code]) continue;
-        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0', align: a.al === '1' ? 'low' : '' };
+        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0', align: a.al === '1' ? 'low' : '',
+          lock: a.lk || '', ue: a.ue === '1', goal: a.gl || '', voice: a.vc === '1' };
       }
       listAt = Date.now();
     });
@@ -565,7 +566,8 @@
         if (k.indexOf('class_') !== 0) { misc[k] = String(v); return; }
         var code = k.slice(6), c = JSON.parse(v), prev = classes[code];
         classes[code] = c;
-        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1', al: c.align === 'low' ? '1' : null } });
+        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1', al: c.align === 'low' ? '1' : null,
+          lk: c.lock || null, ue: c.ue ? '1' : null, gl: c.goal || null, vc: c.voice ? '1' : null } });
         if (prev && prev.sheetId !== c.sheetId) P.drive.push({ id: prev.sheetId, props: { oneRole: null, code: null } });
       },
       deleteProperty: function (k) {
