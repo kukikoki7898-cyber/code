@@ -460,6 +460,7 @@
 
   g.SpreadsheetApp = {
     BorderStyle: { SOLID: 'SOLID' },
+    flush: function () {},
     newConditionalFormatRule: ruleBuilder,
     openById: function (id) {
       var b = books[id], now = Date.now();
@@ -476,7 +477,7 @@
   /** 반드시 저장되어야 하는 값에 쓴다. 저장하지 못하면 알린다. */
   function put(k, v) {
     try { localStorage.setItem(k, v); }
-    catch (e) { throw new Error('이 기기에 저장하지 못했어요. 브라우저의 저장 공간이 꽉 찼거나 시크릿 창일 수 있어요.'); }
+    catch (e) { var er = new Error('이 기기의 저장 공간이 가득 차서 저장하지 못했어요. 설정 → 꾸미기에서 쓰지 않는 배경 사진을 지우면 공간이 생겨요.'); er.storage = true; throw er; }
   }
   function saveLocal(b) {
     put('or_book_' + b.id, JSON.stringify({ sheets: b.sheets.map(function (sh) {
@@ -647,7 +648,13 @@
     if (isLocal()) {
       try {
         for (var i = 0; i < ctx.order.length; i++) { var o = ctx[ctx.order[i]]; saveLocal(o.book); o.book.freshAt = Date.now(); }
-        if (ctx.drive.length) put('or_classes', JSON.stringify(classes));
+        if (ctx.drive.length) {
+          put('or_classes', JSON.stringify(classes));
+          // 지운 학급이나 "새 기록장"으로 바꾸기 전의 기록처럼, 어느 학급도 쓰지 않는 기록은 지워 공간을 비운다.
+          var keep = {};
+          for (var code in classes) keep['or_book_' + classes[code].sheetId] = 1;
+          Object.keys(localStorage).forEach(function (k) { if (k.indexOf('or_book_') === 0 && !keep[k]) localStorage.removeItem(k); });
+        }
       } catch (e) { return Promise.reject(e); }
       return Promise.resolve();
     }

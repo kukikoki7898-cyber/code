@@ -70,6 +70,7 @@
   } }); }
   g.__STRICT_STYLE = true;
   g.SpreadsheetApp = {
+    flush: function () {},
     BorderStyle: { SOLID: 'SOLID' },
     newConditionalFormatRule: ruleB,
     openById: function (id) { if (!books[id]) throw new Error('no access'); return books[id]; },

@@ -167,10 +167,10 @@ function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + n
     var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('bgimg_') === 0; })[0], d = localStorage.getItem(k);
     return { len: d.length, jpeg: d.indexOf('data:image/jpeg') === 0, cls: document.body.className, img: getComputedStyle(document.body).backgroundImage.indexOf('data:image/jpeg') >= 0 };
   });
-  check('6-3. 큰 사진이 줄여져 저장된다 (900KB 미만 JPEG)', st.jpeg && st.len < 900000, Math.round(st.len / 1024) + 'KB');
+  check('6-3. 큰 사진이 줄여져 저장된다 (450KB 미만 JPEG)', st.jpeg && st.len < 450000, Math.round(st.len / 1024) + 'KB');
   check('6-4. 사진이 배경에 깔린다', st.img && st.cls === 'hasimg');
   var dims = await B.evaluate(function () { return new Promise(function (r) { var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('bgimg_') === 0; })[0], im = new Image(); im.onload = function () { r([im.width, im.height]); }; im.src = localStorage.getItem(k); }); });
-  check('6-5. 사진 크기를 화면에 맞게 줄인다 (긴 쪽 1920)', dims[0] === 1920 && dims[1] === 1280, dims.join('x'));
+  check('6-5. 사진 크기를 화면에 맞게 줄인다 (긴 쪽 1600)', dims[0] === 1600 && dims[1] === 1067, dims.join('x'));
   check('6-6. 고르기 칸에 "내 사진"이 생긴다', await B.locator('.sw.img.on').count() === 1);
   await B.click('[data-act=board]'); await B.waitForSelector('.card'); await B.reload(); await B.waitForSelector('.card');
   check('6-7. 새로 고쳐도 사진이 남는다', (await bgc()).cls === 'hasimg');

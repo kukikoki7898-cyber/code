@@ -530,19 +530,21 @@ function getState(code) {
 /** 오늘 칸을 고친다. fn(현재 칸, 학생) -> { text: 새 값, out: 돌려줄 값 } */
 function mutate_(cls, no, date, fn) {
   if (date !== today_()) return { stale: true };
-  var lock = LockService.getScriptLock();
+  // 스크립트 잠금은 모든 학급이 함께 쓰므로, 도장 칸을 읽고 쓰는 동안만 잡는다.
+  // 요약 시트 다시 쓰기는 잠금을 푼 뒤에 한다. (여러 반이 쉬는 시간에 몰려도 덜 기다리게)
+  var lock = LockService.getScriptLock(), ss, sh, fresh = false, out;
   lock.waitLock(20000);
   try {
-    var ss = openBook_(cls);
+    ss = openBook_(cls);
     var roster = readRoster_(ss), st = null;
     for (var i = 0; i < roster.length; i++) if (roster[i].no === String(no)) st = roster[i];
     if (!st) return { stale: true };
-    var log = readLog_(ss), sh = log.sh;
+    var log = readLog_(ss);
+    sh = log.sh;
     var c = log.dateCol[date];
     var r = log.rowOf['k' + st.no];
     var cur = '';
     if (r !== undefined && c !== undefined && c < log.v[r].length) cur = log.v[r][c];
-    var fresh = false;
     if (c === undefined) {
       c = Math.max(sh.getLastColumn(), 3);
       grow_(sh, 1, c + 1);
@@ -557,12 +559,14 @@ function mutate_(cls, no, date, fn) {
     }
     var next = fn(parseCell_(cur), st);
     sh.getRange(r + 1, c + 1).setValue(next.text);
-    if (fresh) tidySheet_(sh, SH_LOG);
-    safe_(function () { writeSummary_(cls, ss, buildState_(cls, ss), false); });
-    return next.out;
+    SpreadsheetApp.flush();   // 잠금을 풀기 전에 시트에 확실히 쓴다
+    out = next.out;
   } finally {
     lock.releaseLock();
   }
+  if (fresh) tidySheet_(sh, SH_LOG);
+  safe_(function () { writeSummary_(cls, ss, buildState_(cls, ss), false); });
+  return out;
 }
 
 /** 학생이 터치했을 때. delta 는 +1(도장) 또는 -1(지우기). */
