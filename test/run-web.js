@@ -26,17 +26,16 @@ var assert = require('assert');
   var hex = await pg.evaluate(function () { return window.__sha256([97, 98, 99]).map(function (v) { return ('0' + ((v + 256) % 256).toString(16)).slice(-2); }).join(''); });
   assert.equal(hex, 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 
-  // 1. 처음 열면 묻지 않고 바로 시작한다. [저장 방식 바꾸기]를 눌러야 고르는 창이 나온다.
+  // 1. 처음 열면 묻지 않고 바로 시작한다. 학급 만들기 창에서 저장 위치를 고를 수 있고, 구글 학급 불러오기 버튼이 있다.
   await pg.waitForSelector('#nc-name');
   assert.equal(await pg.locator('#or-login').count(), 0);
-  await pg.click('[data-act=close]');
-  await pg.click('[data-act=mode]'); await pg.click('[data-act=mode2]');
-  await pg.waitForSelector('#or-login');
-  assert.ok(/기록을 어디에 저장할까요/.test(await pg.textContent('#or-login')));
-  await pg.screenshot({ path: shots + '/web-login.png' });
+  assert.equal(await pg.locator('input[name=nc-where]').count(), 2);
+  assert.equal(await pg.locator('input[name=nc-where][value=local]:checked').count(), 1);
+  assert.equal(await pg.locator('.modal [data-act=gload]').count(), 1);
+  await pg.screenshot({ path: shots + '/web-newclass.png' });
   // 권한 화면에서 드라이브 칸을 체크하지 않고 허용한 경우: 안내를 보여 주고, 다시 로그인할 때 권한 화면을 다시 띄운다
   await pg.evaluate(function () { window.__mock.skipDrive = true; });
-  await pg.click('#or-google');
+  await pg.click('.modal [data-act=gload]');
   await pg.waitForFunction(function () { var t = document.querySelector('#or-login'); return t && /드라이브 권한이 빠져/.test(t.textContent); });
   await pg.click('#or-go');
   await pg.waitForFunction(function () { var t = document.querySelector('.center p'); return t && /아직 만든 학급이 없어요/.test(t.textContent); });
@@ -47,6 +46,8 @@ var assert = require('assert');
   // 2. 학급 만들기: 드라이브에 파일이 생기고 꼬리표가 붙는다. 주소 입력칸은 없다.
   await pg.waitForSelector('#nc-name');
   assert.equal(await pg.locator('#nc-url').count(), 0);
+  assert.equal(await pg.locator('input[name=nc-where][value=google]:checked').count(), 1);
+  assert.equal(await pg.locator('.modal [data-act=gload]').count(), 0);
   await pg.fill('#nc-name', '3학년 5반'); await pg.fill('#nc-pw', '1234');
   await pg.click('[data-act=createclass]');
   await pg.waitForSelector('#bulk');
@@ -65,6 +66,7 @@ var assert = require('assert');
   assert.equal(await pg.evaluate(function () { return window.__fmtError || window.__mock.batchError || ''; }), '');
   await pg.click('[data-act=tab][data-tab=class]');
   assert.ok(/teacher@example\.com/.test(await pg.textContent('.sheet')));
+  assert.ok(/\?g&c=[a-z0-9]+$/.test(await pg.textContent('.url')), await pg.textContent('.url'));
   assert.equal(await pg.locator('#s-url').count(), 0);
   await pg.screenshot({ path: shots + '/web-settings.png' });
   // 운영 설정이 구글 파일 꼬리표(항목당 124바이트)에 들어가는지: 긴 한글 보상, 교시 6개
@@ -169,6 +171,49 @@ var assert = require('assert');
   await pg.waitForSelector('#or-login');
   assert.ok(/구글 로그인이 필요해요/.test(await pg.textContent('#or-login')));
 
+  // 12. 새 기기에서 구글 시트 전용 주소(?g)로 열기: 로그인 한 번이면 내 학급이 나온다
+  var fresh = function () { return pg.evaluate(function () { ['or_mode', 'or_email', 'c'].forEach(function (k) { localStorage.removeItem(k); }); }); };
+  await fresh();
+  await pg.goto(file + '?g');
+  await pg.waitForSelector('#or-login');
+  assert.ok(/구글 로그인이 필요해요/.test(await pg.textContent('#or-login')));
+  await pg.click('#or-go');
+  await pg.waitForSelector('.tags .btn');
+  assert.ok(/3학년 5반/.test(await pg.textContent('.tags')));
+  assert.equal(await pg.locator('[data-act=gotolocal]').count(), 1);
+  await pg.screenshot({ path: shots + '/web-gpick.png' });
+  // 이 기기 학급 보기로 갔다가 다시 구글로
+  await pg.click('[data-act=gotolocal]');
+  await pg.waitForSelector('#nc-name');                    // 이 기기에는 학급이 없어서 만들기 창이 뜬다
+  await pg.click('.modal [data-act=gload]');
+  await pg.waitForSelector('.tags .btn');
+  assert.ok(/3학년 5반/.test(await pg.textContent('.tags')));
+
+  // 13. 새 기기에서 그냥 주소로 열고, 학급 만들기 창의 [구글 시트 학급 불러오기]
+  await fresh();
+  await pg.goto(file);
+  await pg.waitForSelector('.modal [data-act=gload]');
+  var reqs = await pg.evaluate(function () { return window.__mock.tokenReqs; });
+  await pg.click('.modal [data-act=gload]');
+  await pg.waitForSelector('.tags .btn');
+  assert.ok(/3학년 5반/.test(await pg.textContent('.tags')));
+  assert.equal(await pg.evaluate(function () { return window.__mock.tokenReqs; }), reqs + 1);   // 로그인 창은 한 번만
+  assert.equal(await pg.locator('#or-login').count(), 0);
+
+  // 14. 학급 만들기 창에서 "내 구글 시트"를 고르면 그 자리에서 로그인하고 구글에 만든다
+  await fresh();
+  await pg.goto(file);
+  await pg.waitForSelector('#nc-name');
+  var before = await pg.evaluate(function () { return Object.keys(window.__mock.store.files).length; });
+  await pg.fill('#nc-name', '4학년 1반'); await pg.fill('#nc-pw', '1234');
+  await pg.check('input[name=nc-where][value=google]');
+  await pg.click('[data-act=createclass]');
+  await pg.waitForSelector('#bulk');
+  assert.equal(await pg.evaluate(function () { return Object.keys(window.__mock.store.files).length; }), before + 1);
+  assert.equal(await pg.evaluate(function () { return localStorage.getItem('or_mode'); }), 'google');
+  assert.equal(await pg.locator('#or-login').count(), 0);
+  await pg.click('[data-act=close]');
+
   assert.equal(await pg.evaluate(function () { return window.__fmtError || window.__mock.batchError || ''; }), '');
   assert.deepEqual(errs, []);
 
@@ -179,7 +224,7 @@ var assert = require('assert');
   await lp.goto(file);
   await lp.waitForSelector('#nc-name');
   assert.equal(await lp.locator('#or-login').count(), 0);
-  assert.ok(/이 기기의 브라우저에 저장/.test(await lp.textContent('.modal')));
+  assert.equal(await lp.locator('input[name=nc-where][value=local]:checked').count(), 1);   // 처음 여는 기기는 "이 기기에 저장"이 골라져 있다
   await lp.fill('#nc-name', '1학년 2반'); await lp.fill('#nc-pw', '1234'); await lp.click('[data-act=createclass]');
   await lp.waitForSelector('#bulk');
   await lp.fill('#bulk', '가람 칠판 지우기 2\n나래 우유 나르기');

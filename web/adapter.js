@@ -104,8 +104,11 @@
   // 처음 여는 사람은 아무것도 고르지 않고 바로 쓴다(기기 저장). 구글 시트 방식은 설정에서 고를 때만 묻는다.
   var mode = ls('or_mode') || 'local', modeWaiters = [];
   if (mode === 'choose') mode = '';
+  // 구글 시트 전용 주소(…/?g): 이 주소로 열면 처음부터 구글 시트 방식으로 연다.
+  if (/[?&]g(=[^&]*)?(&|$)/.test(g.location.search)) { mode = 'google'; ls('or_mode', 'google'); }
   function isLocal() { return mode === 'local'; }
   function setMode(m) {
+    if (m !== mode) { books = {}; classes = {}; listAt = 0; premade = {}; }
     mode = m; ls('or_mode', m); hideLogin();
     if (m === 'local' && navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch (e) { /* 무시 */ } }
     var w = modeWaiters; modeWaiters = [];
@@ -188,6 +191,12 @@
       books = {}; classes = {}; listAt = 0;
     },
     local: isLocal,
+    // 구글 로그인을 쓸 수 있는지 (클라이언트 ID가 설정되어 있는지)
+    googleReady: function () { return !!CFG.clientId; },
+    // 새로 고치지 않고 저장 방식을 바꾼다. 학급 목록은 새 방식에서 다시 읽는다.
+    useMode: function (m) { setMode(m === 'google' ? 'google' : 'local'); },
+    // 구글 로그인 창을 연다. 브라우저가 창을 막지 않도록 누르는 동작 안에서 불러야 한다.
+    login: function () { if (mode === 'google' && !tokenOk()) requestToken(false); },
     // 저장 방식을 다시 고르게 한다. 이미 저장된 기록은 그대로 남는다.
     changeMode: function () { ls('or_mode', 'choose'); ls('c', null); g.location.reload(); },
     // 시트 한 장을 엑셀에서 열리는 CSV 글자로 돌려준다. (불러와 둔 학급만)
