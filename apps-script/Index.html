@@ -77,6 +77,12 @@ body.hasimg .top{background:rgba(246,236,210,.9);box-shadow:0 2px 0 rgba(43,42,4
 body.hasimg .hero .big,body.hasimg .hero .sub,body.hasimg .center h2,body.hasimg .center p{background:rgba(255,253,246,.88);padding:.08em .5em;border-radius:14px}
 body.hasimg .hero .arrow{text-shadow:0 0 6px #fff,0 0 12px #fff}
 .swatches{display:flex;flex-wrap:wrap;margin-bottom:8px}
+.where{display:flex;align-items:flex-start;padding:8px 10px;margin-top:6px;border:2px solid #d8cfb6;border-radius:10px;cursor:pointer;font-size:18px;line-height:1.3}
+.where input{width:22px;height:22px;margin:2px 10px 0 0;flex:none}
+.where.on{border-color:var(--ink);background:#fff6cf}
+.where small{font-size:16px}
+.gload{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;background:#eaf2fb;border-radius:10px;padding:8px 10px;margin:0 0 12px;font-size:17px}
+.gload .btn{margin-top:4px}
 /* 수업 시간 잠금 */
 .lockov{position:fixed;left:0;right:0;bottom:0;z-index:40;pointer-events:none;display:flex;align-items:center;justify-content:center;
   background:rgba(246,236,210,.72)}
@@ -422,14 +428,29 @@ function renderPick(){
   for (var i = 0; i < S.classes.length; i++)
     h += '<button class="btn" style="background:' + ['#ffd6cb','#fff0a3','#d3edc4','#cbe4f6','#f9cfde','#ffe4b8'][i % 6] + ';transform:rotate(' + ((i % 3) - 1) * 1.5 + 'deg)" data-act="open" data-code="' + esc(S.classes[i].code) + '">' + esc(S.classes[i].name) + '</button>';
   h += '</div><button class="btn ' + (S.classes.length ? 'small' : 'yellow') + '" data-act="newclass">+ 새 학급 만들기 (선생님)</button></div>';
-  if (BOOT.web && window.ONE_ROLE) h = h.replace(/<\/div>$/, '<div style="margin-top:14px"><button class="btn plain small" data-act="mode">저장 방식 바꾸기 (지금: ' + (isLocal() ? '이 기기에 저장' : '구글 시트') + ')</button></div></div>');
+  if (canGoogle()) h = h.replace(/<\/div>$/, '<div style="margin-top:16px">' + (isLocal() ?
+      '<button class="btn" data-act="gload">내 구글 시트 학급 불러오기</button>' :
+      '<span class="hand" style="font-size:17px">' + esc(window.ONE_ROLE.email() || '구글 시트') + '의 학급이에요 · </span><button class="btn plain small" data-act="gotolocal">이 기기에 저장된 학급 보기</button>') + '</div></div>');
+  else if (BOOT.web && window.ONE_ROLE) h = h.replace(/<\/div>$/, '<div style="margin-top:14px"><button class="btn plain small" data-act="mode">저장 방식 바꾸기 (지금: ' + (isLocal() ? '이 기기에 저장' : '구글 시트') + ')</button></div></div>');
   app.innerHTML = h;
   if (!S.classes.length) newClassModal();
 }
+function canGoogle(){ return !!(BOOT.web && window.ONE_ROLE && window.ONE_ROLE.googleReady && window.ONE_ROLE.googleReady()); }
+function whereHtml(){
+  var g = !isLocal(), opt = function(v, on, title, sub){
+    return '<label class="where' + (on ? ' on' : '') + '"><input type="radio" name="nc-where" value="' + v + '"' + (on ? ' checked' : '') + '>' +
+      '<span><b>' + title + '</b><br><small class="hand">' + sub + '</small></span></label>';
+  };
+  return '<div class="field"><label>기록을 어디에 저장할까요?</label>' +
+    opt('local', !g, '이 기기에 저장', '로그인 없음. 이 기기에서만 보여요.') +
+    opt('google', g, '내 구글 시트에 저장', '구글 로그인. 어느 기기에서든 이어서 써요.') + '</div>';
+}
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
+    (canGoogle() && isLocal() ? '<div class="gload"><span class="hand">구글 시트로 쓰던 학급이 있나요?</span><button class="btn small" data-act="gload">내 구글 시트 학급 불러오기</button></div>' : '') +
     '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
-    (isLocal() ? '<p class="hand" style="margin:0 0 14px;font-size:17px">기록은 이 기기의 브라우저에 저장돼요.</p>' :
+    (canGoogle() ? whereHtml() :
+     isLocal() ? '<p class="hand" style="margin:0 0 14px;font-size:17px">기록은 이 기기의 브라우저에 저장돼요.</p>' :
      BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
     '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
@@ -1043,7 +1064,7 @@ function renderSettings(){
     }
     h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
-      (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
+      (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?' + (BOOT.web && !isLocal() ? 'g&' : '') + 'c=' + S.code) + '</div><br>' : '') +
       '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
   }
   app.innerHTML = h + '</div></div>';
@@ -1082,6 +1103,11 @@ function act(a, el){
     case 'newclass': newClassModal(); break;
     case 'close': closeModal(); break;
     case 'createclass':
+      var wh = document.querySelector('input[name=nc-where]:checked');
+      if (wh && canGoogle()) {
+        window.ONE_ROLE.useMode(wh.value);
+        if (wh.value === 'google') window.ONE_ROLE.login();
+      }
       el.disabled = true;
       var npw = val('nc-pw'), nlow = !!(document.getElementById('nc-low') || {}).checked;
       api('createClass', [val('nc-name'), val('nc-url'), npw], function(r){
@@ -1091,6 +1117,14 @@ function act(a, el){
         var go = function(){ enterSettings(npw, function(){ bulkModal(true); }); };
         if (nlow) api('updateClass', [r.code, npw, { align: 'low' }], go, go); else go();
       }, function(m){ el.disabled = false; toast(m); });
+      break;
+    case 'gload':
+      closeModal(); store('c', null); S.pw = '';
+      window.ONE_ROLE.useMode('google'); window.ONE_ROLE.login();
+      showPick();
+      break;
+    case 'gotolocal':
+      store('c', null); S.pw = ''; window.ONE_ROLE.useMode('local'); showPick();
       break;
     case 'bulk': bulkModal(false); break;
     case 'bulkadd': applyBulk(false); break;
@@ -1266,6 +1300,10 @@ document.addEventListener('click', function(ev){
     if (a) { act(a, t); return; }
     t = t.parentNode;
   }
+});
+document.addEventListener('change', function(ev){
+  var t = ev.target;
+  if (t && t.name === 'nc-where') { var ls = document.querySelectorAll('.where'); for (var i = 0; i < ls.length; i++) ls[i].className = 'where' + (ls[i].querySelector('input').checked ? ' on' : ''); }
 });
 document.addEventListener('input', function(ev){
   var t = ev.target, i = +t.getAttribute('data-i'), f = t.getAttribute('data-f'), g = t.getAttribute('data-g');
