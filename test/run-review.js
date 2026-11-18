@@ -103,7 +103,7 @@ function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + n
   var names = []; for (var k = 1; k <= 24; k++) names.push('학생' + k + ' 역할' + k);
   await L.fill('#bulk', names.join('\n')); await L.click('[data-act=bulkset]'); await L.click('[data-act=saveroster]');
   await L.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
-  await L.click('[data-act=tab][data-tab=class]');
+  await L.click('[data-act=tab][data-tab=look]');
   check('5. 새 학급 만들 때 고른 "아래쪽"이 설정에 반영된다', /green/.test(await L.getAttribute('[data-act=align][data-v=low]', 'class')));
   await L.click('[data-act=board]'); await L.waitForSelector('.card');
   var geo = await L.evaluate(function () {
@@ -119,13 +119,13 @@ function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + n
   check('5-5. 아래쪽 배치에서도 도장이 찍힌다', (await L.evaluate(function () { return document.getElementById('heronum').textContent; })) === '1 / 24');
   // 다시 화면 전체로
   await L.click('[data-act=settings]'); await L.fill('#pw', '1234'); await L.click('[data-act=login]');
-  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=class]'); await L.click('[data-act=align][data-v=""]');
+  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=look]'); await L.click('[data-act=align][data-v=""]');
   await L.waitForTimeout(400); await L.click('[data-act=board]'); await L.waitForSelector('.card');
   var top2 = await L.evaluate(function () { return document.querySelector('#card-0').getBoundingClientRect().top; });
   check('5-6. "화면 전체"로 돌리면 위에서부터 채운다', top2 < 200 && !(await L.locator('#hero').count()), '첫 이름표 ' + Math.round(top2) + 'px');
   // 새로 고쳐도 설정이 남는다 (아래쪽으로 다시 바꾼 뒤)
   await L.click('[data-act=settings]'); await L.fill('#pw', '1234'); await L.click('[data-act=login]');
-  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=class]'); await L.click('[data-act=align][data-v=low]');
+  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=look]'); await L.click('[data-act=align][data-v=low]');
   await L.waitForTimeout(400); await L.reload(); await L.waitForSelector('.card');
   check('5-7. 새로 고쳐도 아래쪽 배치가 남는다', await L.locator('.board.low').count() === 1);
   for (var vp of [[1280, 720], [820, 1180], [390, 844]]) {
@@ -141,6 +141,58 @@ function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + n
     check('5-10. ' + vp.join('x') + ' 큰 글씨가 머리 부분과 겹치지 않는다', g2.heroOk, g2.low ? '아래쪽 배치' : '스크롤 배치');
     await L.screenshot({ path: process.argv[4] + '/low-' + vp[0] + '.png' });
   }
+
+  // ---- 6. 배경 바꾸기 ----
+  var imgDir = require('path').join(process.argv[4], '..', 'img');
+  var bc = await b.newContext({ viewport: { width: 1920, height: 1080 } });
+  var B = await bc.newPage(), berr = [];
+  B.on('pageerror', function (e) { berr.push(String(e)); });
+  await B.goto(web); await B.waitForSelector('#nc-name');
+  await B.fill('#nc-name', '배경반'); await B.fill('#nc-pw', '1234'); await B.click('[data-act=createclass]');
+  await B.waitForSelector('#bulk'); await B.fill('#bulk', '가람 칠판\n나래 우유\n다온 화분\n라온 신발장'); await B.click('[data-act=bulkset]'); await B.click('[data-act=saveroster]');
+  await B.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
+  await B.click('[data-act=tab][data-tab=look]');
+  var bgc = function () { return B.evaluate(function () { var c = getComputedStyle(document.body); return { color: c.backgroundColor, img: c.backgroundImage.slice(0, 40), cls: document.body.className }; }); };
+  check('6. 배경 고르기 칸이 8개 있다', await B.locator('.sw').count() === 8);
+  await B.click('[data-act=bg][data-v=mint]'); await B.waitForTimeout(200);
+  check('6-1. 민트를 누르면 바로 바뀐다', (await bgc()).color === 'rgb(220, 243, 228)', (await bgc()).color);
+  await B.click('[data-act=board]'); await B.waitForSelector('.card'); await B.reload(); await B.waitForSelector('.card');
+  check('6-2. 새로 고쳐도 남는다', (await bgc()).color === 'rgb(220, 243, 228)', (await bgc()).color);
+  // 사진: 3000x2000 큰 사진을 넣는다
+  await B.click('[data-act=settings]'); await B.fill('#pw', '1234'); await B.click('[data-act=login]');
+  await B.waitForSelector('.tabs'); await B.click('[data-act=tab][data-tab=look]');
+  await B.click('[data-act=bgpick]'); await B.setInputFiles('#bg-file', imgDir + '/big.png');
+  await B.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /배경 사진을 바꿨어요/.test(t.textContent); }, null, { timeout: 15000 });
+  var st = await B.evaluate(function () {
+    var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('bgimg_') === 0; })[0], d = localStorage.getItem(k);
+    return { len: d.length, jpeg: d.indexOf('data:image/jpeg') === 0, cls: document.body.className, img: getComputedStyle(document.body).backgroundImage.indexOf('data:image/jpeg') >= 0 };
+  });
+  check('6-3. 큰 사진이 줄여져 저장된다 (900KB 미만 JPEG)', st.jpeg && st.len < 900000, Math.round(st.len / 1024) + 'KB');
+  check('6-4. 사진이 배경에 깔린다', st.img && st.cls === 'hasimg');
+  var dims = await B.evaluate(function () { return new Promise(function (r) { var k = Object.keys(localStorage).filter(function (x) { return x.indexOf('bgimg_') === 0; })[0], im = new Image(); im.onload = function () { r([im.width, im.height]); }; im.src = localStorage.getItem(k); }); });
+  check('6-5. 사진 크기를 화면에 맞게 줄인다 (긴 쪽 1920)', dims[0] === 1920 && dims[1] === 1280, dims.join('x'));
+  check('6-6. 고르기 칸에 "내 사진"이 생긴다', await B.locator('.sw.img.on').count() === 1);
+  await B.click('[data-act=board]'); await B.waitForSelector('.card'); await B.reload(); await B.waitForSelector('.card');
+  check('6-7. 새로 고쳐도 사진이 남는다', (await bgc()).cls === 'hasimg');
+  await B.click('#card-0'); await B.waitForTimeout(600);
+  check('6-8. 사진 배경에서도 도장이 찍힌다', await B.locator('#card-0 .slot.on').count() === 1);
+  await B.screenshot({ path: process.argv[4] + '/bg-photo.png' });
+  await B.click('[data-act=stickers]'); await B.waitForSelector('table.st'); await B.screenshot({ path: process.argv[4] + '/bg-photo-stickers.png' });
+  await B.click('[data-act=board]'); await B.waitForSelector('.card');
+  // 사진이 아닌 파일
+  await B.click('[data-act=settings]'); await B.fill('#pw', '1234'); await B.click('[data-act=login]');
+  await B.waitForSelector('.tabs'); await B.click('[data-act=tab][data-tab=look]');
+  await B.click('[data-act=bgpick]'); await B.setInputFiles('#bg-file', imgDir + '/not-image.txt');
+  await B.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /사진 파일을 골라/.test(t.textContent); });
+  check('6-9. 사진이 아닌 파일은 거절하고 배경은 그대로', (await bgc()).cls === 'hasimg');
+  // 다른 학급은 영향이 없다
+  var other = await B.evaluate(function () { return Object.keys(localStorage).filter(function (k) { return /^bg_/.test(k); }).length; });
+  check('6-10. 배경은 학급마다 따로 저장된다', other === 1, other + '개 학급에 배경 설정');
+  // 사진 지우기 → 기본
+  await B.click('[data-act=bgdel]'); await B.waitForTimeout(200);
+  var after = await bgc();
+  check('6-11. 사진을 지우면 기본 배경으로 돌아간다', after.cls === '' && after.color === 'rgb(246, 236, 210)' && await B.locator('.sw.img').count() === 0, after.color);
+  check('6-12. 오류 없음', berr.length === 0, berr.join(' | '));
 
   console.log(results.join('\n'));
   await b.close();
