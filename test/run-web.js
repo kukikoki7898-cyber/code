@@ -67,6 +67,20 @@ var assert = require('assert');
   assert.ok(/teacher@example\.com/.test(await pg.textContent('.sheet')));
   assert.equal(await pg.locator('#s-url').count(), 0);
   await pg.screenshot({ path: shots + '/web-settings.png' });
+  // 운영 설정이 구글 파일 꼬리표(항목당 124바이트)에 들어가는지: 긴 한글 보상, 교시 6개
+  await pg.click('[data-act=tab][data-tab=rule]');
+  await pg.click('[data-act=ue][data-v="1"]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /학생도/.test(t.textContent); });
+  await pg.fill('#g-n', '120'); await pg.fill('#g-t', '가나다라마바사아자차카타파하가나다라마바사아자차카타파하가나');
+  await pg.click('[data-act=goalsave]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /목표를 저장/.test(t.textContent); });
+  await pg.click('[data-act=lockon][data-v="1"]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /잠금을 켰어요/.test(t.textContent); });
+  await pg.click('[data-act=lockon][data-v="0"]');
+  await pg.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /잠금을 껐어요/.test(t.textContent); });
+  var tp = (await tagged())[0].p;
+  assert.equal(tp.ue, '1'); assert.ok(/^120\|\d{8}\|가나다/.test(tp.gl), tp.gl); assert.ok(/^0\|0900-0940,/.test(tp.lk), tp.lk);
+  assert.equal(await pg.evaluate(function () { return window.__mock.batchError || ''; }), '');
   await pg.click('[data-act=board]');
   await pg.waitForSelector('.card');
 

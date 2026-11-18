@@ -86,6 +86,7 @@
 
 ```
 node tools/build-web.js --mock /tmp/web.html && node test/run-web.js /tmp/web.html /tmp/shots   # 웹 버전
+node test/run-features.js /tmp/web.html /tmp/preview.html /tmp/shots   # 수업 시간 잠금, 선생님만 지우기, 학급 목표, 칭찬 음성, 백업 알림
 node test/run-review.js /tmp/web.html /tmp/preview.html /tmp/shots   # 두 탭, 결석 해제, 학급 전환 중 재시도, 전체화면, 아래쪽 배치
 node test/build-preview.js /tmp/preview.html
 node test/run.js /tmp/preview.html /tmp/shots   # playwright 필요

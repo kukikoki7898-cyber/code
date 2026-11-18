@@ -82,6 +82,26 @@ body.hasimg .top{background:rgba(246,236,210,.9);box-shadow:0 2px 0 rgba(43,42,4
 body.hasimg .hero .big,body.hasimg .hero .sub,body.hasimg .center h2,body.hasimg .center p{background:rgba(255,253,246,.88);padding:.08em .5em;border-radius:14px}
 body.hasimg .hero .arrow{text-shadow:0 0 6px #fff,0 0 12px #fff}
 .swatches{display:flex;flex-wrap:wrap;margin-bottom:8px}
+/* 수업 시간 잠금 */
+.lockov{position:fixed;left:0;right:0;bottom:0;z-index:40;pointer-events:none;display:flex;align-items:center;justify-content:center;
+  background:rgba(246,236,210,.72)}
+.lockbox{pointer-events:auto;text-align:center;background:var(--white);border:3px solid var(--ink);border-radius:var(--cut);padding:20px 30px;
+  box-shadow:6px 8px 0 rgba(43,42,40,.25);transform:rotate(-1.5deg);max-width:90%}
+.lockbox .lk1{font-size:clamp(26px,3.6vw,54px)}
+.lockbox .lk2{font-size:clamp(17px,1.8vw,28px);margin:6px 0 14px}
+/* 학급 목표 */
+.goal{margin-left:14px;font-size:22px;white-space:nowrap;padding:6px 12px 4px;background:var(--yellow);border:2.5px solid var(--ink);
+  border-radius:16px 12px 18px 12px;box-shadow:3px 4px 0 rgba(43,42,40,.22);transform:rotate(-1.5deg)}
+.goal b{font-weight:400;color:var(--red)}
+.goal .gtx{font-size:.75em;margin-left:4px}
+.goal.done{background:#ffd0dc;animation:pop .5s}
+/* 백업 알림 점 */
+.btn.due{position:relative}
+.btn.due:after{content:'';position:absolute;right:-5px;top:-5px;width:14px;height:14px;border-radius:50%;background:var(--red);border:2px solid #fff}
+.warnbox{background:#fdeeee;border:2px solid #e7a6a1;border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:18px}
+.warnbox .btn{margin-top:8px}
+.row .pn{width:64px;font-size:18px}.row .w-time{width:190px}
+.card{-webkit-touch-callout:none}
 .sw{width:86px;height:64px;margin:0 10px 10px 0;border:2.5px solid var(--ink);border-radius:12px;cursor:pointer;position:relative;
   font-size:15px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:2px 3px 0 rgba(43,42,40,.18)}
 .sw span{background:rgba(255,253,246,.9);border-radius:6px;padding:0 5px}
@@ -233,11 +253,15 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
   .row .w-date{width:150px}
   .sheet{padding:14px}.field .line{flex-wrap:wrap}.field .line .in{flex:1 1 100%;margin:0 0 8px}
 }
+@media (max-width:900px){.goal .gtx{display:none}.goal{font-size:18px;margin-left:10px}}
 @media (max-width:520px){
   .cal{width:56px;border-width:2px}.cal .m{font-size:12px}.cal .d{font-size:24px}.cal .w{font-size:11px}
   .title{font-size:20px;margin-left:10px;flex:1 1 calc(100% - 80px);min-width:0}
   .fslab{display:none}
   .clock{margin-top:10px !important;margin-right:8px !important}
+  .goal{font-size:15px;padding:4px 8px 2px;margin:10px 6px 0 0}
+  .top .btn{font-size:15px;padding:5px 9px;margin-right:6px}
+  .clock{font-size:17px !important;padding:5px 8px 3px !important}
   .title em{display:inline-block}
   .grow{display:none}
   .clock{font-size:19px;margin:0}
@@ -257,7 +281,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-18 12:13";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-18 12:57";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -380,10 +404,27 @@ function getClass_(code) {
 }
 
 function putClass_(c) {
+  var i = classInfo_(c);
   props_().setProperty('class_' + c.code, JSON.stringify({
-    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false, align: c.align === 'low' ? 'low' : ''
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: i.sound, align: i.align, lock: i.lock, ue: i.ue, goal: i.goal, voice: i.voice
   }));
 }
+
+/**
+ * 학급 설정 (화면에 보내는 것)
+ *   lock  : 수업 시간 잠금. '1|0900-0940,0950-1030' (앞 숫자 1 = 켬, 0 = 끔), '' = 설정 안 함
+ *   ue    : 참이면 학생도 [지우기] 버튼을 쓸 수 있다. 거짓이면 선생님만 (이름표 길게 누르기)
+ *   goal  : 학급 목표. '10|20261118|피자 파티' (모두 다 한 날 10일, 시작 날짜, 보상), '' = 없음
+ *   voice : 칭찬 음성
+ */
+function classInfo_(c) {
+  return {
+    name: c.name, sound: c.sound !== false, align: c.align === 'low' ? 'low' : '',
+    lock: LOCK_RE_.test(c.lock || '') ? c.lock : '', ue: !!c.ue, goal: GOAL_RE_.test(c.goal || '') ? c.goal : '', voice: !!c.voice
+  };
+}
+var LOCK_RE_ = /^[01]\|(\d{4}-\d{4}(,\d{4}-\d{4}){0,11})?$/;
+var GOAL_RE_ = /^\d{1,3}\|\d{8}\|[^|]{0,30}$/;
 
 function hash_(salt, pw) {
   var b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8);
@@ -703,9 +744,27 @@ function buildState_(cls, ss) {
     });
   }
 
+  // 학급 목표: 시작한 날부터 어제까지, 출석한 친구가 모두 다 한 날 수 (오늘은 화면에서 실시간으로 더한다)
+  var info = classInfo_(cls), goalPast = 0;
+  if (info.goal) {
+    var gs = info.goal.split('|')[1], gStart = gs.slice(0, 4) + '-' + gs.slice(4, 6) + '-' + gs.slice(6, 8);
+    for (var g = 0; g < dates.length; g++) {
+      if (dates[g] < gStart || dates[g] >= today) continue;
+      var gc = log.dateCol[dates[g]], present = 0, full = 0;
+      for (var q = 0; q < roster.length; q++) {
+        var rr = log.rowOf['k' + roster[q].no];
+        var cell = rr === undefined || gc >= log.v[rr].length ? { count: 0, absent: false } : parseCell_(log.v[rr][gc]);
+        if (cell.absent) continue;
+        present++;
+        if (cell.count >= roster[q].target) full++;
+      }
+      if (present && full === present) goalPast++;
+    }
+  }
+
   return {
-    code: cls.code, name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '',
-    today: today, dow: dow_(today), rest: restReason_(today, rest),
+    code: cls.code, name: info.name, sound: info.sound, align: info.align, lock: info.lock, ue: info.ue, goal: info.goal, voice: info.voice,
+    goalPast: goalPast, today: today, dow: dow_(today), rest: restReason_(today, rest),
     week: week, students: students, days: dates.length
   };
 }
@@ -811,6 +870,7 @@ function auth(code, pw) {
   var ss = openBook_(cls);
   return {
     name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId),
+    lock: classInfo_(cls).lock, ue: !!cls.ue, goal: classInfo_(cls).goal, voice: !!cls.voice,
     roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
   };
 }
@@ -913,6 +973,19 @@ function updateClass(code, pw, change) {
   }
   if (change.sound !== undefined) cls.sound = !!change.sound;
   if (change.align !== undefined) cls.align = change.align === 'low' ? 'low' : '';
+  if (change.ue !== undefined) cls.ue = !!change.ue;
+  if (change.voice !== undefined) cls.voice = !!change.voice;
+  if (change.lock !== undefined) {
+    var lk = str_(change.lock);
+    if (lk && !LOCK_RE_.test(lk)) throw new Error('수업 시간 형식이 올바르지 않아요.');
+    cls.lock = lk;
+  }
+  if (change.goal !== undefined) {
+    var gl = str_(change.goal);
+    if (gl && !GOAL_RE_.test(gl)) throw new Error('목표는 1~999일, 보상은 30자까지 적어 주세요.');
+    if (gl && +gl.split('|')[0] < 1) throw new Error('목표 일수는 1일 이상이어야 해요.');
+    cls.goal = gl;
+  }
   if (change.newPw !== undefined) {
     if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
     cls.pw = hash_(cls.code, String(change.newPw));
@@ -958,7 +1031,9 @@ function updateClass(code, pw, change) {
       }
     });
   }
-  return { name: cls.name, sound: cls.sound, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+  var ci = classInfo_(cls);
+  return { name: cls.name, sound: ci.sound, align: ci.align, lock: ci.lock, ue: ci.ue, goal: ci.goal, voice: ci.voice,
+    sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
 }
 
 /** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */
@@ -1068,7 +1143,16 @@ function 설치점검() {
     check('틀린 비밀번호 거절', denied);
     check('맞는 비밀번호 통과', auth(CODE, PW).roster.length === 3);
 
-    // 9. 시트 꾸미기 (실패해도 기록에는 지장 없음)
+    // 9. 운영 설정 (수업 시간 잠금, 지우기 권한, 학급 목표, 칭찬 음성)
+    updateClass(CODE, PW, { lock: '1|0000-0001,2358-2359', ue: true, voice: true, goal: '3|' + addDays_(today, -1).replace(/-/g, '') + '|점검 보상' });
+    var os = getState(CODE);
+    check('운영 설정 저장', os.lock === '1|0000-0001,2358-2359' && os.ue === true && os.voice === true && os.goal.indexOf('3|') === 0 && os.goalPast === 0,
+      JSON.stringify({ lock: os.lock, ue: os.ue, voice: os.voice, goal: os.goal, goalPast: os.goalPast }));
+    var badLock = false;
+    try { updateClass(CODE, PW, { lock: '1|9시-10시' }); } catch (e4) { badLock = true; }
+    check('잘못된 시간표 거절', badLock);
+
+    // 10. 시트 꾸미기 (실패해도 기록에는 지장 없음)
     STRICT_ = true;
     try {
       tidy_(ss);
@@ -1640,7 +1724,8 @@ function 설치점검() {
       for (var i = 0; i < f.length; i++) {
         var a = f[i].appProperties || {};
         if (!a.code || classes[a.code]) continue;
-        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0', align: a.al === '1' ? 'low' : '' };
+        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0', align: a.al === '1' ? 'low' : '',
+          lock: a.lk || '', ue: a.ue === '1', goal: a.gl || '', voice: a.vc === '1' };
       }
       listAt = Date.now();
     });
@@ -1663,7 +1748,8 @@ function 설치점검() {
         if (k.indexOf('class_') !== 0) { misc[k] = String(v); return; }
         var code = k.slice(6), c = JSON.parse(v), prev = classes[code];
         classes[code] = c;
-        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1', al: c.align === 'low' ? '1' : null } });
+        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1', al: c.align === 'low' ? '1' : null,
+          lk: c.lock || null, ue: c.ue ? '1' : null, gl: c.goal || null, vc: c.voice ? '1' : null } });
         if (prev && prev.sheetId !== c.sheetId) P.drive.push({ id: prev.sheetId, props: { oneRole: null, code: null } });
       },
       deleteProperty: function (k) {
@@ -2063,6 +2149,7 @@ function bgLoadFile(file){
 function setState(st){
   S.st = st; S.day = localDay(); S.loaded = Date.now();
   applyBg();
+  if (isLocal() && !store('or_since')) store('or_since', String(Date.now()));
   for (var i = 0; i < st.students.length; i++) st.students[i].base = st.students[i].done >= st.students[i].target && !st.students[i].absent;
 }
 function refresh(){
@@ -2082,7 +2169,7 @@ function counts(){
 function topHtml(right){
   var st = S.st, p = st.today.split('-');
   return '<div class="top"><div class="cal' + (st.dow === 0 || st.dow === 6 ? ' sun' : '') + '"><div class="m">' + (+p[1]) + '월</div><div class="d">' + (+p[2]) +
-    '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="clock" id="clock">' + clockHtml() + '</div><div class="grow"></div>' + right + '</div>';
+    '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="clock" id="clock">' + clockHtml() + '</div>' + goalHtml() + '<div class="grow"></div>' + right + '</div>';
 }
 /* ---------- 전체화면 ---------- */
 function fsOk(){
@@ -2126,7 +2213,7 @@ function cardHtml(s, i){
   h += '<span class="no">' + esc(s.no) + '</span><div class="name' + (s.name.length > 4 ? ' long' : '') + '">' + esc(s.name) + '</div>';
   h += '<div class="role hand"><i>' + esc(iconOf(s)) + '</i>' + esc(s.role || '역할을 정해요') + '</div>';
   h += '<div class="slots" id="slots-' + i + '">' + slotsHtml(s, i, -1) + '</div>';
-  h += '<button class="undo" data-act="undo" data-i="' + i + '">지우기</button>';
+  if (S.st.ue) h += '<button class="undo" data-act="undo" data-i="' + i + '">지우기</button>';
   var k = streakNow(s);
   if (k >= 2 && !s.absent) h += '<span class="streak">' + k + '일 연속!</span>';
   return h + '</div>';
@@ -2141,7 +2228,7 @@ function slotsHtml(s, i, fresh){
 function renderBoard(){
   var st = S.st, a = st.students, c = counts();
   var right = '<span class="net" id="net"></span><div class="prog"><span class="lab">다 한 친구</span><div class="bar"><i id="bar"></i></div><span class="num" id="num"></span></div>' +
-    '<button class="btn green" data-act="stickers">스티커판</button>' + fsBtn() + '<button class="btn small" data-act="settings">설정</button>';
+    '<button class="btn green" data-act="stickers">스티커판</button>' + fsBtn() + '<button class="btn small' + (backupDue() ? ' due' : '') + '" data-act="settings" id="setbtn">설정</button>';
   var h = topHtml(right);
   if (st.rest && !S.force) {
     h += '<div class="center" style="min-height:60vh"><h2>오늘은 쉬는 날이에요</h2><p class="hand">' + esc(st.rest) + ' · 푹 쉬고 다음에 만나요!</p>' +
@@ -2149,13 +2236,20 @@ function renderBoard(){
   } else if (!a.length) {
     h += '<div class="center" style="min-height:60vh"><h2>아직 이름표가 없어요</h2><p class="hand">선생님이 친구들과 역할을 넣어 주세요</p><button class="btn yellow" data-act="settings">친구 넣으러 가기</button></div>';
   } else {
-    if (isLow()) h += '<div class="hero" id="hero"><div class="big">다 한 친구 <b id="heronum"></b></div><div class="sub hand">자기 이름표를 눌러 도장을 꾹 찍어요</div><div class="arrow">⬇</div></div>';
+    if (isLow()) h += '<div class="hero" id="hero"><div class="big">다 한 친구 <b id="heronum"></b></div><div class="sub hand" id="herogoal">자기 이름표를 눌러 도장을 꾹 찍어요</div><div class="arrow">⬇</div></div>';
     h += '<div class="grid" id="grid">';
     for (var i = 0; i < a.length; i++) h += cardHtml(a[i], i);
     h += '</div>';
   }
+  var lk = a.length && !(st.rest && !S.force) ? lockNow() : null;
+  S.lockShown = !!lk;
+  if (lk) h += '<div class="lockov" id="lockov"><div class="lockbox"><div class="lk1">📚 지금은 수업 시간이에요</div>' +
+    '<div class="lk2 hand">' + lk.end + '에 쉬는 시간이 되면 도장을 찍을 수 있어요</div>' +
+    '<button class="btn small" data-act="tunlock">선생님: 잠깐 풀기</button></div></div>';
   app.innerHTML = '<div class="board' + (isLow() && a.length && !(st.rest && !S.force) ? ' low' : '') + '">' + h + '</div>';
   fit(); prog(c); netShow();
+  var ov = document.getElementById('lockov'), tb = document.querySelector('.top');
+  if (ov && tb) ov.style.top = tb.getBoundingClientRect().bottom + 'px';
 }
 function prog(c){
   c = c || counts();
@@ -2165,7 +2259,129 @@ function prog(c){
   bar.style.width = pct + '%'; bar.className = pct === 0 || pct === 100 ? 'zero' : '';
   num.textContent = c.d + ' / ' + c.n;
   var hn = document.getElementById('heronum'); if (hn) hn.textContent = c.d + ' / ' + c.n;
+  var g = goalState(c), gn = document.getElementById('goal');
+  if (gn && g) { gn.className = 'goal' + (g.done ? ' done' : ''); gn.innerHTML = goalInner(g); }
+  var hg = document.getElementById('herogoal');
+  if (hg && g) hg.textContent = g.done ? '🎉 목표 달성! ' + (g.reward || '') : '🎯 ' + (g.reward ? g.reward + '까지 ' : '목표까지 ') + (g.target - g.count) + '일 남았어요';
 }
+
+/* ---------- 학급 목표 ---------- */
+function goalState(c){
+  var st = S.st; if (!st || !st.goal) return null;
+  var p = st.goal.split('|'), start = p[1].slice(0, 4) + '-' + p[1].slice(4, 6) + '-' + p[1].slice(6, 8);
+  c = c || counts();
+  var count = (st.goalPast || 0) + (st.today >= start && c.n && c.d === c.n ? 1 : 0), target = +p[0];
+  return { target: target, count: Math.min(count, target), reward: p.slice(2).join('|'), done: count >= target, start: start };
+}
+function goalInner(g){ return g.done ? '🎉 목표 달성!<span class="gtx">' + esc(g.reward) + '</span>' : '🎯 <b>' + g.count + '</b> / ' + g.target + '일<span class="gtx">' + esc(g.reward) + '</span>'; }
+function goalHtml(){ var g = goalState(); return g ? '<div class="goal' + (g.done ? ' done' : '') + '" id="goal" title="학급 목표: 모두 다 한 날">' + goalInner(g) + '</div>' : ''; }
+
+/* ---------- 수업 시간 잠금 ---------- */
+var DEFAULT_PERIODS = [['09:00','09:40'],['09:50','10:30'],['10:40','11:20'],['11:30','12:10'],['13:00','13:40'],['13:50','14:30']];
+function parseLock(v){
+  v = v || ''; var on = v.charAt(0) === '1', list = [], body = v.split('|')[1] || '';
+  if (body) body.split(',').forEach(function(x){ list.push([x.slice(0, 2) + ':' + x.slice(2, 4), x.slice(5, 7) + ':' + x.slice(7, 9)]); });
+  return { on: on, list: v ? list : DEFAULT_PERIODS.map(function(x){ return x.slice(); }) };
+}
+function lockString(on, list){
+  return (on ? '1' : '0') + '|' + list.map(function(x){ return x[0].replace(':', '') + '-' + x[1].replace(':', ''); }).join(',');
+}
+function lockNow(){
+  var st = S.st; if (!st || !st.lock || st.lock.charAt(0) !== '1') return null;
+  if (S.unlockUntil && Date.now() < S.unlockUntil) return null;
+  var d = new Date(), m = d.getHours() * 60 + d.getMinutes(), list = parseLock(st.lock).list;
+  for (var i = 0; i < list.length; i++) {
+    var a = list[i][0].split(':'), b = list[i][1].split(':'), s0 = +a[0] * 60 + +a[1], e0 = +b[0] * 60 + +b[1];
+    if (m >= s0 && m < e0) {
+      var end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), +b[0], +b[1]).getTime();
+      return { end: (+b[0] < 12 ? '오전 ' : '오후 ') + ((+b[0] % 12) || 12) + ':' + b[1], endMs: end };
+    }
+  }
+  return null;
+}
+setInterval(function(){
+  if (S.view === 'board' && S.st && !document.getElementById('shade') && !!lockNow() !== !!S.lockShown) render();
+}, 15000);
+
+/* ---------- 선생님 확인 (5분 동안 다시 묻지 않음) ---------- */
+function teacherAuth(cb){
+  if (S.tpw && Date.now() - S.tpwAt < 5 * 60 * 1000) { cb(); return; }
+  S.tcb = cb;
+  modal('<h3>선생님 비밀번호</h3><input class="in" id="tpw" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
+    '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="tpwok">확인</button></div>');
+}
+function teacherAuthOk(){
+  var pw = val('tpw'); if (!pw) return;
+  api('auth', [S.code, pw], function(){ S.tpw = pw; S.tpwAt = Date.now(); closeModal(); var cb = S.tcb; S.tcb = null; if (cb) cb(); });
+}
+/* 이름표를 길게 누르면 나오는 선생님 메뉴 */
+function teacherMenu(i){
+  var s = S.st.students[i]; if (!s) return;
+  teacherAuth(function(){
+    modal('<h3>' + esc(s.no) + '. ' + esc(s.name) + ' <small class="hand" style="font-size:18px">' + esc(s.role) + '</small></h3>' +
+      '<p class="hand" style="font-size:18px;margin:0 0 6px">오늘 도장 ' + (s.absent ? '없음 (결석)' : s.done + ' / ' + s.target) + '</p>' +
+      '<div class="chips">' + (s.done > 0 && !s.absent ? '<button class="btn" data-act="tundo" data-i="' + i + '">도장 하나 지우기</button>' : '') +
+      '<button class="btn" data-act="tabsent" data-i="' + i + '">' + (s.absent ? '결석 해제' : '결석으로 표시') + '</button></div>' +
+      '<div class="btns"><button class="btn yellow" data-act="close">닫기</button></div>');
+  });
+}
+
+/* ---------- 칭찬 음성 ---------- */
+function koVoice(){
+  try { var v = window.speechSynthesis.getVoices(); for (var i = 0; i < v.length; i++) if (/^ko/i.test(v[i].lang)) return v[i]; } catch(e){}
+  return null;
+}
+function speak(text, force, queue){
+  if (!force && !(S.st && S.st.voice)) return;
+  var ss = window.speechSynthesis; if (!ss || !window.SpeechSynthesisUtterance) return;
+  try {
+    if (!queue) ss.cancel();
+    var u = new SpeechSynthesisUtterance(text); u.lang = 'ko-KR';
+    var v = koVoice(); if (v) u.voice = v;
+    u.rate = 1.05; u.pitch = 1.25; ss.speak(u);
+  } catch(e){}
+}
+/* 김하늘 → 하늘아, 이바다 → 바다야 */
+function callName(name){
+  var n = String(name || '').replace(/^\s+|\s+$/g, '');
+  if (/^[가-힣]{3}$/.test(n)) n = n.slice(1);
+  var c = n.charCodeAt(n.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3) return n + ((c - 0xAC00) % 28 ? '아' : '야');
+  return n;
+}
+var KNUM = ['', '한', '두', '세', '네', '다섯'];
+
+/* ---------- 백업 알림 (이 기기에 저장 방식) ---------- */
+function backupDue(){
+  if (!isLocal()) return 0;
+  var base = Math.max(+store('or_since') || 0, +store('or_lastbackup') || 0);
+  if (!base) return 0;
+  var d = Math.floor((Date.now() - base) / 86400000);
+  return d >= 7 ? d : 0;
+}
+
+/* ---------- 길게 누르기 ---------- */
+var LP = null;
+function lpPoint(e){ return e.touches && e.touches[0] ? e.touches[0] : e; }
+function lpStart(e){
+  if (S.view !== 'board' || (e.button && e.button !== 0)) return;
+  var t = e.target, card = t && t.closest ? t.closest('.card') : null;
+  if (!card || (t.closest && t.closest('.undo'))) return;
+  lpCancel();
+  var p = lpPoint(e), i = +card.getAttribute('data-i');
+  var me = LP = { x: p.clientX, y: p.clientY, fired: false, timer: setTimeout(function(){ me.fired = true; teacherMenu(i); }, 700) };
+}
+function lpMove(e){ if (!LP) return; var p = lpPoint(e); if (Math.abs(p.clientX - LP.x) > 12 || Math.abs(p.clientY - LP.y) > 12) lpCancel(); }
+/* 길게 눌러 메뉴가 뜬 경우, 손을 뗄 때 따라오는 click 한 번만 버린다 */
+function lpCancel(){ if (LP) { clearTimeout(LP.timer); if (LP.fired) S.suppressUntil = Date.now() + 500; LP = null; } }
+if (window.PointerEvent) {
+  document.addEventListener('pointerdown', lpStart); document.addEventListener('pointermove', lpMove);
+  document.addEventListener('pointerup', lpCancel); document.addEventListener('pointercancel', lpCancel);
+} else {
+  document.addEventListener('touchstart', lpStart); document.addEventListener('touchmove', lpMove); document.addEventListener('touchend', lpCancel);
+  document.addEventListener('mousedown', lpStart); document.addEventListener('mousemove', lpMove); document.addEventListener('mouseup', lpCancel);
+}
+document.addEventListener('contextmenu', function(e){ if (e.target && e.target.closest && e.target.closest('.card')) e.preventDefault(); });
 /* 저학년: 이름표를 화면 아래쪽 이만큼에만 둔다 (아이 손이 닿는 높이) */
 var LOW_PART = 0.62;
 function isLow(){ return !!(S.st && S.st.align === 'low'); }
@@ -2207,6 +2423,10 @@ function stamp(i){
   var s = S.st.students[i]; if (!s) return;
   var el = document.getElementById('card-' + i);
   if (s.absent) { toast('결석으로 표시된 친구예요. 선생님께 말씀드려요.'); return; }
+  if (lockNow()) {
+    el.className += ' shake'; setTimeout(function(){ el.className = el.className.replace(' shake', ''); }, 400);
+    toast('지금은 수업 시간이에요. 쉬는 시간에 찍어요.'); return;
+  }
   if (s.done >= s.target) {
     el.className += ' shake'; setTimeout(function(){ el.className = el.className.replace(' shake', ''); }, 400);
     return;
@@ -2225,12 +2445,18 @@ function stamp(i){
   var c = counts(); prog(c);
   if (s.done >= s.target) {
     setTimeout(function(){ sndDone(); burst(r.left + r.width / 2, r.top + r.height / 2, 50); }, 330);
-    var k = streakNow(s);
+    speak(callName(s.name) + ', 고마워! ' + (s.role ? s.role + ' 완료!' : ''));
+    var k = streakNow(s), g = goalState(c);
     if (c.n && c.d === c.n) {
-      setTimeout(function(){ sndAll(); burst(0, 0, 260, true); banner('우리 반 모두 해냈어요!', 3600); }, 750);
+      setTimeout(function(){ sndAll(); burst(0, 0, 260, true); banner('우리 반 모두 해냈어요!', 3600); speak('우리 반 모두 해냈어요! 최고!', false, true); }, 750);
+      if (g && g.done && g.count === g.target) {
+        setTimeout(function(){ sndAll(); burst(0, 0, 320, true); banner('🎉 목표 달성! ' + g.reward, 5000); speak('학급 목표 달성! ' + g.reward, false, true); }, 4600);
+      }
     } else if (k >= 3 && k % 5 === 0) {
       banner(s.name + ' ' + k + '일 연속!', 2200);
     }
+  } else {
+    speak(callName(s.name) + ', 좋아! ' + (KNUM[s.target - s.done] || (s.target - s.done)) + ' 번 남았어.');
   }
 }
 function undo(i){
@@ -2306,7 +2532,8 @@ function enterSettings(pw, then){
   api('auth', [S.code, pw], function(ad){
     closeModal(); S.pw = pw; S.admin = ad; setState(ad.state);
     S.edit = JSON.parse(JSON.stringify(ad.roster)); S.rest = JSON.parse(JSON.stringify(ad.rest));
-    S.view = 'settings'; S.tab = 'roster'; render();
+    S.lockEdit = parseLock(ad.lock); S.tpw = pw; S.tpwAt = Date.now();
+    S.view = 'settings'; S.tab = backupDue() ? 'class' : 'roster'; render();
     if (then) then();
   });
 }
@@ -2355,9 +2582,9 @@ function applyBulk(replace){
   toast(list.length + '명을 넣었어요. 확인하고 [저장하기]를 눌러 주세요.');
 }
 function renderSettings(){
-  var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['look','꾸미기'],['class','시트 · 비밀번호']];
+  var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['rule','운영'],['look','꾸미기'],['class', isLocal() ? '기록 보관 · 비밀번호' : '시트 · 비밀번호']];
   var h = '<div class="top"><h1 class="title" style="margin-left:0">' + esc(S.st.name) + ' <em>설정</em></h1><div class="grow"></div><button class="btn yellow" data-act="board">← 칠판으로</button></div><div class="wrap"><div class="tabs">';
-  for (var i = 0; i < tabs.length; i++) h += '<button class="btn' + (S.tab === tabs[i][0] ? ' on' : '') + '" data-act="tab" data-tab="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
+  for (var i = 0; i < tabs.length; i++) h += '<button class="btn' + (S.tab === tabs[i][0] ? ' on' : '') + (tabs[i][0] === 'class' && backupDue() ? ' due' : '') + '" data-act="tab" data-tab="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
   h += '</div><div class="sheet">';
   if (S.tab === 'roster') {
     h += '<h3>친구와 역할</h3><p class="note">같은 역할을 두 명이 맡으면 두 줄에 똑같이 적으면 돼요. 횟수는 하루에 도장을 몇 번 찍는지예요. 스프레드시트의 [명단] 시트에서 직접 고쳐도 됩니다.</p>';
@@ -2379,12 +2606,33 @@ function renderSettings(){
       h += '<button class="btn' + (s.absent ? ' on' : '') + '" data-act="absent" data-i="' + a + '">' + esc(s.no) + '. ' + esc(s.name) + (s.absent ? ' (결석)' : '') + '</button>';
     }
     h += '</div>' + (S.st.students.length ? '' : '<p class="note">먼저 친구를 추가해 주세요.</p>');
+  } else if (S.tab === 'rule') {
+    var ad = S.admin, L = S.lockEdit, g = goalState();
+    h += '<h3>수업 시간 잠금</h3><p class="note">켜 두면 수업 시간에는 이름표를 눌러도 도장이 찍히지 않아요. 아침, 쉬는 시간, 점심시간, 방과 후에는 찍을 수 있어요. 선생님은 칠판에서 비밀번호로 잠깐 풀 수 있어요.</p>' +
+      '<div class="chips"><button class="btn' + (L.on ? ' green' : '') + '" data-act="lockon" data-v="1">켜기</button><button class="btn' + (L.on ? '' : ' green') + '" data-act="lockon" data-v="0">끄기</button></div>';
+    for (var li = 0; li < L.list.length; li++) {
+      h += '<div class="row"><span class="pn">' + (li + 1) + '교시</span><input class="in w-time" type="time" data-l="0" data-i="' + li + '" value="' + L.list[li][0] + '">' +
+        '<span>~</span><input class="in w-time" type="time" data-l="1" data-i="' + li + '" value="' + L.list[li][1] + '"><button class="btn small" data-act="lockdel" data-i="' + li + '">✕</button></div>';
+    }
+    h += '<div class="row"><button class="btn small" data-act="lockadd">+ 교시 추가</button><button class="btn small" data-act="lockdefault">기본 시간표로</button><span class="grow"></span><button class="btn yellow" data-act="locksave">시간표 저장</button></div>';
+    h += '<h3>도장 지우기</h3><p class="note">"선생님만"이면 이름표의 [지우기] 버튼이 사라져요. 지울 때는 이름표를 <b>꾹 길게 눌러</b> 비밀번호를 넣으세요. 결석 표시도 거기서 할 수 있어요.</p>' +
+      '<div class="chips"><button class="btn' + (ad.ue ? '' : ' green') + '" data-act="ue" data-v="0">선생님만</button><button class="btn' + (ad.ue ? ' green' : '') + '" data-act="ue" data-v="1">학생도 지울 수 있게</button></div>';
+    h += '<h3>학급 목표</h3><p class="note">출석한 친구가 <b>모두</b> 1인 1역을 다 한 날을 모아요. 정한 날 수를 채우면 칠판에서 크게 축하해요.</p>' +
+      (g ? '<p class="hand" style="font-size:21px;margin:0 0 8px">지금 ' + (g.done ? '🎉 달성! ' : '🎯 ') + g.count + ' / ' + g.target + '일 · ' + (+g.start.slice(5, 7)) + '월 ' + (+g.start.slice(8)) + '일부터</p>' : '') +
+      '<div class="row"><input class="in" id="g-n" type="number" min="1" max="999" inputmode="numeric" style="width:90px" value="' + (g ? g.target : 10) + '"><span>일 모으면</span>' +
+      '<input class="in w-role" id="g-t" maxlength="30" placeholder="예: 피자 파티, 자유 놀이 시간" value="' + esc(g ? g.reward : '') + '"></div>' +
+      '<div class="row"><button class="btn yellow" data-act="goalsave">' + (g ? '목표 저장' : '목표 시작하기') + '</button>' +
+      (g ? '<button class="btn" data-act="goalreset">오늘부터 다시 세기</button><button class="btn small" data-act="goaloff">목표 끄기</button>' : '') + '</div>';
   } else if (S.tab === 'look') {
     var ad = S.admin;
     h += '<h3>배경</h3><p class="note">이 기기(전자칠판)에만 적용돼요. 사진은 화면 크기에 맞게 줄여서 저장해요.</p>' + bgSwatches() +
       '<h3>이름표 위치</h3><p class="note">저학년은 키가 작으니 이름표를 화면 아래쪽에 모아 두면 손이 잘 닿아요.</p><div class="chips">' +
         '<button class="btn' + (ad.align === 'low' ? '' : ' green') + '" data-act="align" data-v="">화면 전체</button>' +
         '<button class="btn' + (ad.align === 'low' ? ' green' : '') + '" data-act="align" data-v="low">아래쪽 (저학년)</button></div>' +
+      '<h3>칭찬 음성</h3><p class="note">도장을 찍으면 "하늘아, 고마워! 칠판 지우기 완료!"처럼 말해 줘요. 이름이 세 글자면 성을 빼고 불러요.' +
+        (koVoice() ? '' : ' <b>이 기기에서 한국어 음성을 아직 찾지 못했어요. [들어 보기]로 확인해 주세요.</b>') + '</p>' +
+        '<div class="chips"><button class="btn' + (ad.voice ? ' green' : '') + '" data-act="voice" data-v="1">켜기</button><button class="btn' + (ad.voice ? '' : ' green') + '" data-act="voice" data-v="0">끄기</button>' +
+        '<button class="btn" data-act="voicetest">들어 보기</button></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>';
   } else if (S.tab === 'rest') {
     h += '<h3>쉬는 날</h3><p class="note">토요일과 일요일은 자동으로 쉬어요. 공휴일, 재량휴업일, 방학을 넣어 주세요. 하루만 쉬면 끝 날짜는 비워 두세요.</p>';
@@ -2399,7 +2647,10 @@ function renderSettings(){
   } else {
     var ad = S.admin;
     if (isLocal()) {
-      h += '<h3>기록 보관</h3><p class="note">기록은 <b>이 기기의 브라우저에만</b> 저장돼요. 브라우저의 방문 기록·사이트 데이터를 지우면 함께 사라지니, 가끔 백업 파일을 받아 두세요.</p>' +
+      var due = backupDue(), lb = +store('or_lastbackup') || 0;
+      if (due) h += '<div class="warnbox">⚠ ' + (lb ? '마지막 백업이 <b>' + Math.floor((Date.now() - lb) / 86400000) + '일 전</b>이에요.' : '아직 백업 파일을 저장한 적이 없어요.') +
+        ' 브라우저 기록을 지우거나 칠판이 초기화되면 도장 기록도 사라져요. 지금 저장해 두세요.<br><button class="btn yellow" data-act="backup">백업 파일 저장</button></div>';
+      h += '<h3>기록 보관</h3><p class="note">' + (lb ? '마지막 백업: ' + new Date(lb).toLocaleDateString('ko-KR') + '<br>' : '') + '기록은 <b>이 기기의 브라우저에만</b> 저장돼요. 브라우저의 방문 기록·사이트 데이터를 지우면 함께 사라지니, 가끔 백업 파일을 받아 두세요.</p>' +
         '<div class="chips"><button class="btn green" data-act="dl" data-sheet="기록">기록 내려받기 (엑셀)</button><button class="btn green" data-act="dl" data-sheet="요약">요약 내려받기 (엑셀)</button></div>' +
         '<div class="chips"><button class="btn" data-act="backup">백업 파일 저장</button><button class="btn" data-act="restore">백업 파일 불러오기</button>' +
         '<button class="btn" data-act="newsheet">새 기록장으로 시작 (새 학기)</button></div>' +
@@ -2420,6 +2671,22 @@ function renderSettings(){
       '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
   }
   app.innerHTML = h + '</div></div>';
+}
+function saveLock(){
+  var L = S.lockEdit, re = /^\d{2}:\d{2}$/, list = [];
+  for (var i = 0; i < L.list.length; i++) {
+    var x = L.list[i];
+    if (!re.test(x[0]) || !re.test(x[1])) { toast((i + 1) + '교시 시간을 확인해 주세요.'); return; }
+    if (x[0] >= x[1]) { toast((i + 1) + '교시: 끝나는 시각이 시작보다 늦어야 해요.'); return; }
+    list.push([x[0], x[1]]);
+  }
+  list.sort(function(a, b){ return a[0] < b[0] ? -1 : 1; });
+  if (list.length > 12) { toast('교시는 12개까지 넣을 수 있어요.'); return; }
+  if (L.on && !list.length) { toast('잠글 교시를 하나 이상 넣어 주세요.'); return; }
+  adminCall('updateClass', [{ lock: lockString(L.on, list) }], function(r){
+    S.admin.lock = r.lock; S.st.lock = r.lock; S.lockEdit = parseLock(r.lock); S.unlockUntil = 0; render();
+    toast(S.lockEdit.on ? '수업 시간 잠금을 켰어요.' : '수업 시간 잠금을 껐어요.');
+  });
 }
 function adminCall(fn, extra, ok){ api(fn, [S.code, S.pw].concat(extra), ok); }
 
@@ -2511,6 +2778,49 @@ function act(a, el){
       var np = val('s-pw');
       adminCall('updateClass', [{ newPw: np }], function(){ S.pw = np; render(); toast('비밀번호를 바꿨어요.'); });
       break;
+    case 'tpwok': teacherAuthOk(); break;
+    case 'tunlock':
+      var lk0 = lockNow();
+      teacherAuth(function(){ var l2 = lockNow() || lk0; S.unlockUntil = l2 ? l2.endMs : 0; render(); toast('이번 수업 시간이 끝날 때까지 풀었어요.'); });
+      break;
+    case 'tundo': closeModal(); undo(i); break;
+    case 'tabsent':
+      var ts = S.st.students[i];
+      api('setAbsent', [S.code, S.tpw, ts.no, !ts.absent, S.st.today], function(r){
+        closeModal();
+        if (r && r.stale) { toast('날짜가 바뀌었어요. 새로 불러옵니다.'); refresh(); return; }
+        if (r.state) setState(r.state); render(); toast(r.absent ? ts.name + ' 결석으로 표시했어요.' : ts.name + ' 결석을 풀었어요.');
+      });
+      break;
+    case 'lockon': S.lockEdit.on = el.getAttribute('data-v') === '1'; saveLock(); break;
+    case 'lockadd':
+      var lst = S.lockEdit.list, last = lst.length ? lst[lst.length - 1][1] : '09:00';
+      S.lockEdit.list.push([last, last]); render(); break;
+    case 'lockdel': S.lockEdit.list.splice(i, 1); render(); break;
+    case 'lockdefault': S.lockEdit.list = DEFAULT_PERIODS.map(function(x){ return x.slice(); }); render(); break;
+    case 'locksave': saveLock(); break;
+    case 'ue':
+      adminCall('updateClass', [{ ue: el.getAttribute('data-v') === '1' }], function(r){ S.admin.ue = r.ue; S.st.ue = r.ue; render(); toast(r.ue ? '학생도 [지우기]를 쓸 수 있어요.' : '지우기는 선생님만 할 수 있어요. 이름표를 길게 누르세요.'); });
+      break;
+    case 'goalsave': case 'goalreset':
+      var gn2 = parseInt(val('g-n'), 10), gt = val('g-t').replace(/\|/g, ' ').replace(/^\s+|\s+$/g, '').slice(0, 30), og = goalState();
+      if (!(gn2 >= 1 && gn2 <= 999)) { toast('목표 일수를 1~999 사이로 적어 주세요.'); break; }
+      var start = a === 'goalsave' && og ? og.start : S.st.today;
+      adminCall('updateClass', [{ goal: gn2 + '|' + start.replace(/-/g, '') + '|' + gt }], function(r){
+        S.admin.goal = r.goal; api('getState', [S.code], function(st){ setState(st); render(); toast(a === 'goalreset' ? '오늘부터 다시 세요.' : '학급 목표를 저장했어요.'); });
+      });
+      break;
+    case 'goaloff':
+      adminCall('updateClass', [{ goal: '' }], function(r){ S.admin.goal = ''; S.st.goal = ''; render(); toast('학급 목표를 껐어요.'); });
+      break;
+    case 'voice':
+      adminCall('updateClass', [{ voice: el.getAttribute('data-v') === '1' }], function(r){ S.admin.voice = r.voice; S.st.voice = r.voice; render(); if (r.voice) speak('칭찬 음성을 켰어요!', true); });
+      break;
+    case 'voicetest':
+      var vs = S.st.students[0];
+      speak(vs ? callName(vs.name) + ', 고마워! ' + (vs.role ? vs.role + ' 완료!' : '') : '하늘아, 고마워! 칠판 지우기 완료!', true);
+      if (!window.speechSynthesis) toast('이 브라우저는 음성을 지원하지 않아요.');
+      break;
     case 'bg':
       store('bg_' + S.code, el.getAttribute('data-v') || null); applyBg(true); render();
       break;
@@ -2532,7 +2842,7 @@ function act(a, el){
       var sn = el.getAttribute('data-sheet');
       window.ONE_ROLE.download('1인1역_' + S.st.name + '_' + sn + '_' + S.st.today + '.csv', window.ONE_ROLE.csv(S.code, sn), 'text/csv;charset=utf-8');
       break;
-    case 'backup': window.ONE_ROLE.download('1인1역_백업_' + S.st.today + '.json', window.ONE_ROLE.backup(), 'application/json'); toast('백업 파일을 저장했어요.'); break;
+    case 'backup': store('or_lastbackup', String(Date.now())); setTimeout(render, 50); window.ONE_ROLE.download('1인1역_백업_' + S.st.today + '.json', window.ONE_ROLE.backup(), 'application/json'); toast('백업 파일을 저장했어요.'); break;
     case 'restore':
       var fi = document.getElementById('restore-file');
       fi.onchange = function(){
@@ -2566,6 +2876,11 @@ function rosterOf(st){
 }
 
 document.addEventListener('click', function(ev){
+  // 길게 누른 뒤 손을 뗄 때 생기는 click 은 버린다. (도장이 더 찍히거나 방금 뜬 창이 닫히지 않게)
+  if (S.suppressUntil) {
+    var late = Date.now() > S.suppressUntil; S.suppressUntil = 0;
+    if (!late && !(ev.target.closest && ev.target.closest('.modal'))) return;
+  }
   var t = ev.target;
   if (t.id === 'shade') { closeModal(); return; }
   while (t && t !== document) {
@@ -2578,10 +2893,13 @@ document.addEventListener('input', function(ev){
   var t = ev.target, i = +t.getAttribute('data-i'), f = t.getAttribute('data-f'), g = t.getAttribute('data-g');
   if (f && S.edit[i]) S.edit[i][f] = t.value;
   if (g && S.rest[i]) S.rest[i][g] = t.value;
+  var l = t.getAttribute('data-l');
+  if (l !== null && S.lockEdit && S.lockEdit.list[i]) S.lockEdit.list[i][+l] = t.value;
 });
 document.addEventListener('keydown', function(ev){
   if (ev.keyCode !== 13) return;
   if (ev.target.id === 'pw') login();
+  if (ev.target.id === 'tpw') teacherAuthOk();
 });
 window.addEventListener('resize', function(){ sizeFx(); fit(); });
 window.addEventListener('storage', function(e){

@@ -11,6 +11,7 @@
   var list = [];
   for (var i = 0; i < names.length; i++) list.push({ no: String(i + 1), name: names[i], role: roles[i][0], icon: '', target: roles[i][1] });
   saveRoster(code, '1234', list);
+  updateClass(code, '1234', { ue: true });   // 체험판과 검사에서는 학생도 [지우기]를 쓴다
   var days = ['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06','2026-11-09','2026-11-10','2026-11-11','2026-11-12'];
   if (window.__DEMO) {
     // 체험판: 오늘까지의 평일 9일

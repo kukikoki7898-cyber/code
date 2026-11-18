@@ -119,10 +119,27 @@ function getClass_(code) {
 }
 
 function putClass_(c) {
+  var i = classInfo_(c);
   props_().setProperty('class_' + c.code, JSON.stringify({
-    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false, align: c.align === 'low' ? 'low' : ''
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: i.sound, align: i.align, lock: i.lock, ue: i.ue, goal: i.goal, voice: i.voice
   }));
 }
+
+/**
+ * 학급 설정 (화면에 보내는 것)
+ *   lock  : 수업 시간 잠금. '1|0900-0940,0950-1030' (앞 숫자 1 = 켬, 0 = 끔), '' = 설정 안 함
+ *   ue    : 참이면 학생도 [지우기] 버튼을 쓸 수 있다. 거짓이면 선생님만 (이름표 길게 누르기)
+ *   goal  : 학급 목표. '10|20261118|피자 파티' (모두 다 한 날 10일, 시작 날짜, 보상), '' = 없음
+ *   voice : 칭찬 음성
+ */
+function classInfo_(c) {
+  return {
+    name: c.name, sound: c.sound !== false, align: c.align === 'low' ? 'low' : '',
+    lock: LOCK_RE_.test(c.lock || '') ? c.lock : '', ue: !!c.ue, goal: GOAL_RE_.test(c.goal || '') ? c.goal : '', voice: !!c.voice
+  };
+}
+var LOCK_RE_ = /^[01]\|(\d{4}-\d{4}(,\d{4}-\d{4}){0,11})?$/;
+var GOAL_RE_ = /^\d{1,3}\|\d{8}\|[^|]{0,30}$/;
 
 function hash_(salt, pw) {
   var b = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, salt + '|' + pw, Utilities.Charset.UTF_8);
@@ -442,9 +459,27 @@ function buildState_(cls, ss) {
     });
   }
 
+  // 학급 목표: 시작한 날부터 어제까지, 출석한 친구가 모두 다 한 날 수 (오늘은 화면에서 실시간으로 더한다)
+  var info = classInfo_(cls), goalPast = 0;
+  if (info.goal) {
+    var gs = info.goal.split('|')[1], gStart = gs.slice(0, 4) + '-' + gs.slice(4, 6) + '-' + gs.slice(6, 8);
+    for (var g = 0; g < dates.length; g++) {
+      if (dates[g] < gStart || dates[g] >= today) continue;
+      var gc = log.dateCol[dates[g]], present = 0, full = 0;
+      for (var q = 0; q < roster.length; q++) {
+        var rr = log.rowOf['k' + roster[q].no];
+        var cell = rr === undefined || gc >= log.v[rr].length ? { count: 0, absent: false } : parseCell_(log.v[rr][gc]);
+        if (cell.absent) continue;
+        present++;
+        if (cell.count >= roster[q].target) full++;
+      }
+      if (present && full === present) goalPast++;
+    }
+  }
+
   return {
-    code: cls.code, name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '',
-    today: today, dow: dow_(today), rest: restReason_(today, rest),
+    code: cls.code, name: info.name, sound: info.sound, align: info.align, lock: info.lock, ue: info.ue, goal: info.goal, voice: info.voice,
+    goalPast: goalPast, today: today, dow: dow_(today), rest: restReason_(today, rest),
     week: week, students: students, days: dates.length
   };
 }
@@ -550,6 +585,7 @@ function auth(code, pw) {
   var ss = openBook_(cls);
   return {
     name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId),
+    lock: classInfo_(cls).lock, ue: !!cls.ue, goal: classInfo_(cls).goal, voice: !!cls.voice,
     roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
   };
 }
@@ -652,6 +688,19 @@ function updateClass(code, pw, change) {
   }
   if (change.sound !== undefined) cls.sound = !!change.sound;
   if (change.align !== undefined) cls.align = change.align === 'low' ? 'low' : '';
+  if (change.ue !== undefined) cls.ue = !!change.ue;
+  if (change.voice !== undefined) cls.voice = !!change.voice;
+  if (change.lock !== undefined) {
+    var lk = str_(change.lock);
+    if (lk && !LOCK_RE_.test(lk)) throw new Error('수업 시간 형식이 올바르지 않아요.');
+    cls.lock = lk;
+  }
+  if (change.goal !== undefined) {
+    var gl = str_(change.goal);
+    if (gl && !GOAL_RE_.test(gl)) throw new Error('목표는 1~999일, 보상은 30자까지 적어 주세요.');
+    if (gl && +gl.split('|')[0] < 1) throw new Error('목표 일수는 1일 이상이어야 해요.');
+    cls.goal = gl;
+  }
   if (change.newPw !== undefined) {
     if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
     cls.pw = hash_(cls.code, String(change.newPw));
@@ -697,7 +746,9 @@ function updateClass(code, pw, change) {
       }
     });
   }
-  return { name: cls.name, sound: cls.sound, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+  var ci = classInfo_(cls);
+  return { name: cls.name, sound: ci.sound, align: ci.align, lock: ci.lock, ue: ci.ue, goal: ci.goal, voice: ci.voice,
+    sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
 }
 
 /** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */
@@ -807,7 +858,16 @@ function 설치점검() {
     check('틀린 비밀번호 거절', denied);
     check('맞는 비밀번호 통과', auth(CODE, PW).roster.length === 3);
 
-    // 9. 시트 꾸미기 (실패해도 기록에는 지장 없음)
+    // 9. 운영 설정 (수업 시간 잠금, 지우기 권한, 학급 목표, 칭찬 음성)
+    updateClass(CODE, PW, { lock: '1|0000-0001,2358-2359', ue: true, voice: true, goal: '3|' + addDays_(today, -1).replace(/-/g, '') + '|점검 보상' });
+    var os = getState(CODE);
+    check('운영 설정 저장', os.lock === '1|0000-0001,2358-2359' && os.ue === true && os.voice === true && os.goal.indexOf('3|') === 0 && os.goalPast === 0,
+      JSON.stringify({ lock: os.lock, ue: os.ue, voice: os.voice, goal: os.goal, goalPast: os.goalPast }));
+    var badLock = false;
+    try { updateClass(CODE, PW, { lock: '1|9시-10시' }); } catch (e4) { badLock = true; }
+    check('잘못된 시간표 거절', badLock);
+
+    // 10. 시트 꾸미기 (실패해도 기록에는 지장 없음)
     STRICT_ = true;
     try {
       tidy_(ss);
