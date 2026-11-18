@@ -72,6 +72,16 @@ button{cursor:pointer}
 .hero .big{font-size:clamp(28px,5.2vw,86px);line-height:1.1}
 .hero .big b{font-weight:400;color:var(--red)}
 .hero .sub{font-size:clamp(17px,2vw,32px);margin-top:.35em}
+/* 배경 사진이 있을 때 글씨가 잘 보이도록 종이 띠를 깐다 */
+body.hasimg .top{background:rgba(246,236,210,.9);box-shadow:0 2px 0 rgba(43,42,40,.12);padding-bottom:12px}
+body.hasimg .hero .big,body.hasimg .hero .sub,body.hasimg .center h2,body.hasimg .center p{background:rgba(255,253,246,.88);padding:.08em .5em;border-radius:14px}
+body.hasimg .hero .arrow{text-shadow:0 0 6px #fff,0 0 12px #fff}
+.swatches{display:flex;flex-wrap:wrap;margin-bottom:8px}
+.sw{width:86px;height:64px;margin:0 10px 10px 0;border:2.5px solid var(--ink);border-radius:12px;cursor:pointer;position:relative;
+  font-size:15px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:2px 3px 0 rgba(43,42,40,.18)}
+.sw span{background:rgba(255,253,246,.9);border-radius:6px;padding:0 5px}
+.sw.on{outline:4px solid var(--red);outline-offset:2px}
+.sw.img{background-size:cover;background-position:center}
 .hero .arrow{font-size:clamp(22px,3vw,48px);margin-top:.2em;animation:bob 1.6s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(.25em)}}
 @media (max-height:560px){.hero .sub,.hero .arrow{display:none}}
@@ -170,6 +180,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 .tabs .btn.on{background:var(--ink);color:#fff}
 .sheet{background:var(--white);border:2.5px solid var(--ink);border-radius:var(--cut);padding:18px;box-shadow:4px 5px 0 rgba(43,42,40,.18)}
 .sheet h3{font-weight:400;font-size:24px;margin:0 0 4px}
+.sheet h3:not(:first-child){margin-top:20px}
 .sheet p.note{font-family:'Gaegu',sans-serif;font-size:19px;margin:2px 0 12px;line-height:1.35}
 .in{font-size:20px;padding:8px 10px;border:2px solid var(--ink);border-radius:8px;background:#fff;min-width:0;-webkit-user-select:text;user-select:text}
 .row{display:flex;align-items:center;margin-bottom:8px}
@@ -376,7 +387,7 @@ function press(r){
 
 /* ---------- 처음 화면: 학급 고르기 ---------- */
 function showPick(){
-  S.view = 'pick'; S.code = ''; S.st = null;
+  S.view = 'pick'; S.code = ''; S.st = null; applyBg();
   app.innerHTML = '<div class="center"><h2>잠깐만요…</h2></div>';
   api('listClasses', [], function(list){ S.classes = list || []; renderPick(); },
     function(m){ app.innerHTML = '<div class="center"><h2>앗!</h2><p class="hand">' + esc(m) + '</p><button class="btn yellow" data-act="reload">다시 시도</button></div>'; });
@@ -410,8 +421,75 @@ function openClass(code){
   api('getState', [code], function(st){ store('c', code); setState(st); render(); },
     function(m){ store('c', null); toast(m); showPick(); });
 }
+/* ---------- 배경 (이 기기에만 저장) ---------- */
+var DOTS = 'radial-gradient(rgba(120,90,40,.13) 1px,transparent 1.3px)';
+var BGS = [
+  ['', '기본', '#f6ecd2', DOTS, '22px 22px'],
+  ['note', '공책', '#fdfbf3', 'linear-gradient(rgba(74,144,201,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(74,144,201,.16) 1px,transparent 1px)', '28px 28px'],
+  ['sky', '하늘', '#dceefb', DOTS, '22px 22px'],
+  ['mint', '민트', '#dcf3e4', DOTS, '22px 22px'],
+  ['pink', '분홍', '#fde4ec', DOTS, '22px 22px'],
+  ['lemon', '레몬', '#fff4c2', DOTS, '22px 22px'],
+  ['lilac', '보라', '#ebe3fa', DOTS, '22px 22px'],
+  ['sand', '모래', '#ebe2d0', 'repeating-linear-gradient(45deg,rgba(120,90,40,.05) 0 10px,transparent 10px 20px)', 'auto']
+];
+var bgCode = null;
+function bgGet(){ var k = S.code; return k ? (store('bg_' + k) || '') : ''; }
+function bgImg(){ var k = S.code; return k ? store('bgimg_' + k) : null; }
+function applyBg(force){
+  var key = (S.code || '') + '|' + bgGet() + '|' + (bgImg() ? bgImg().length : 0);
+  if (!force && key === bgCode) return;
+  bgCode = key;
+  var b = document.body.style, img = bgImg(), v = bgGet(), p = BGS[0];
+  for (var i = 0; i < BGS.length; i++) if (BGS[i][0] === v) p = BGS[i];
+  if (img && v === 'img') {
+    b.backgroundColor = '#f6ecd2';
+    b.backgroundImage = 'linear-gradient(rgba(255,253,246,.28),rgba(255,253,246,.28)),url(' + img + ')';
+    b.backgroundSize = 'cover'; b.backgroundPosition = 'center'; b.backgroundAttachment = 'fixed';
+    document.body.className = 'hasimg';
+  } else {
+    b.backgroundColor = p[2]; b.backgroundImage = p[3]; b.backgroundSize = p[4]; b.backgroundPosition = ''; b.backgroundAttachment = '';
+    document.body.className = '';
+  }
+}
+function bgSwatches(){
+  var v = bgGet(), img = bgImg(), h = '<div class="swatches">';
+  for (var i = 0; i < BGS.length; i++) {
+    var p = BGS[i];
+    h += '<button class="sw' + (v === p[0] || (!p[0] && v === 'img' && !img) ? ' on' : '') + '" data-act="bg" data-v="' + p[0] + '" style="background-color:' + p[2] +
+      ';background-image:' + p[3] + ';background-size:' + p[4] + '"><span>' + p[1] + '</span></button>';
+  }
+  if (img) h += '<button class="sw img' + (v === 'img' ? ' on' : '') + '" data-act="bg" data-v="img" style="background-image:url(' + img + ')"><span>내 사진</span></button>';
+  return h + '</div><div class="chips"><button class="btn" data-act="bgpick">' + (img ? '다른 사진으로 바꾸기' : '사진 넣기') + '</button>' +
+    (img ? '<button class="btn small" data-act="bgdel">사진 지우기</button>' : '') + '</div><input type="file" id="bg-file" accept="image/*" style="display:none">';
+}
+/* 사진을 화면 크기에 맞게 줄이고 JPEG 로 바꿔 저장한다. (브라우저 저장 공간이 작으므로) */
+function bgLoadFile(file){
+  if (!file || !/^image\//.test(file.type)) { toast('사진 파일을 골라 주세요.'); return; }
+  toast('사진을 맞추는 중이에요…');
+  var url = (window.URL || window.webkitURL).createObjectURL(file), im = new Image();
+  im.onload = function(){
+    var max = 1920, w = im.naturalWidth, h = im.naturalHeight, r = Math.min(1, max / Math.max(w, h));
+    var cv = document.createElement('canvas'); cv.width = Math.round(w * r); cv.height = Math.round(h * r);
+    var c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(im, 0, 0, cv.width, cv.height);
+    (window.URL || window.webkitURL).revokeObjectURL(url);
+    var data = '', q = [0.82, 0.7, 0.55, 0.4];
+    for (var i = 0; i < q.length; i++) { data = cv.toDataURL('image/jpeg', q[i]); if (data.length < 900000) break; }
+    try {
+      localStorage.setItem('bgimg_' + S.code, data);
+      localStorage.setItem('bg_' + S.code, 'img');
+    } catch (e) {
+      toast('사진이 너무 커서 저장하지 못했어요. 더 작은 사진을 골라 주세요.'); return;
+    }
+    applyBg(true); render(); toast('배경 사진을 바꿨어요.');
+  };
+  im.onerror = function(){ toast('이 사진은 열 수 없어요. 다른 사진을 골라 주세요.'); };
+  im.src = url;
+}
+
 function setState(st){
   S.st = st; S.day = localDay(); S.loaded = Date.now();
+  applyBg();
   for (var i = 0; i < st.students.length; i++) st.students[i].base = st.students[i].done >= st.students[i].target && !st.students[i].absent;
 }
 function refresh(){
@@ -704,7 +782,7 @@ function applyBulk(replace){
   toast(list.length + '명을 넣었어요. 확인하고 [저장하기]를 눌러 주세요.');
 }
 function renderSettings(){
-  var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['class','시트 · 비밀번호']];
+  var tabs = [['roster','친구와 역할'],['absent','오늘 결석'],['rest','쉬는 날'],['look','꾸미기'],['class','시트 · 비밀번호']];
   var h = '<div class="top"><h1 class="title" style="margin-left:0">' + esc(S.st.name) + ' <em>설정</em></h1><div class="grow"></div><button class="btn yellow" data-act="board">← 칠판으로</button></div><div class="wrap"><div class="tabs">';
   for (var i = 0; i < tabs.length; i++) h += '<button class="btn' + (S.tab === tabs[i][0] ? ' on' : '') + '" data-act="tab" data-tab="' + tabs[i][0] + '">' + tabs[i][1] + '</button>';
   h += '</div><div class="sheet">';
@@ -728,6 +806,13 @@ function renderSettings(){
       h += '<button class="btn' + (s.absent ? ' on' : '') + '" data-act="absent" data-i="' + a + '">' + esc(s.no) + '. ' + esc(s.name) + (s.absent ? ' (결석)' : '') + '</button>';
     }
     h += '</div>' + (S.st.students.length ? '' : '<p class="note">먼저 친구를 추가해 주세요.</p>');
+  } else if (S.tab === 'look') {
+    var ad = S.admin;
+    h += '<h3>배경</h3><p class="note">이 기기(전자칠판)에만 적용돼요. 사진은 화면 크기에 맞게 줄여서 저장해요.</p>' + bgSwatches() +
+      '<h3>이름표 위치</h3><p class="note">저학년은 키가 작으니 이름표를 화면 아래쪽에 모아 두면 손이 잘 닿아요.</p><div class="chips">' +
+        '<button class="btn' + (ad.align === 'low' ? '' : ' green') + '" data-act="align" data-v="">화면 전체</button>' +
+        '<button class="btn' + (ad.align === 'low' ? ' green' : '') + '" data-act="align" data-v="low">아래쪽 (저학년)</button></div>' +
+      '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>';
   } else if (S.tab === 'rest') {
     h += '<h3>쉬는 날</h3><p class="note">토요일과 일요일은 자동으로 쉬어요. 공휴일, 재량휴업일, 방학을 넣어 주세요. 하루만 쉬면 끝 날짜는 비워 두세요.</p>';
     for (var d = 0; d < S.rest.length; d++) {
@@ -758,10 +843,6 @@ function renderSettings(){
     }
     h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
-      '<h3>이름표 위치</h3><p class="note">저학년은 키가 작으니 이름표를 화면 아래쪽에 모아 두면 손이 잘 닿아요.</p><div class="chips">' +
-        '<button class="btn' + (ad.align === 'low' ? '' : ' green') + '" data-act="align" data-v="">화면 전체</button>' +
-        '<button class="btn' + (ad.align === 'low' ? ' green' : '') + '" data-act="align" data-v="low">아래쪽 (저학년)</button></div>' +
-      '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
       (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
       '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
   }
@@ -857,6 +938,18 @@ function act(a, el){
       var np = val('s-pw');
       adminCall('updateClass', [{ newPw: np }], function(){ S.pw = np; render(); toast('비밀번호를 바꿨어요.'); });
       break;
+    case 'bg':
+      store('bg_' + S.code, el.getAttribute('data-v') || null); applyBg(true); render();
+      break;
+    case 'bgpick':
+      var bf = document.getElementById('bg-file');
+      bf.value = ''; bf.onchange = function(){ bgLoadFile(bf.files && bf.files[0]); };
+      bf.click();
+      break;
+    case 'bgdel':
+      store('bgimg_' + S.code, null); if (bgGet() === 'img') store('bg_' + S.code, null);
+      applyBg(true); render(); toast('사진을 지웠어요.');
+      break;
     case 'align':
       adminCall('updateClass', [{ align: el.getAttribute('data-v') }], function(r){ S.admin.align = r.align; S.st.align = r.align; render(); toast(r.align === 'low' ? '이름표를 아래쪽에 모았어요. [칠판으로]를 눌러 확인해 보세요.' : '이름표를 화면 전체에 펼쳤어요.'); });
       break;
@@ -890,7 +983,7 @@ function act(a, el){
       modal('<h3>이 학급을 지울까요?</h3><p class="hand" style="font-size:19px">학급 목록에서만 사라지고, 스프레드시트와 기록은 그대로 남아요.</p>' +
         '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn red" data-act="delclass2">지우기</button></div>');
       break;
-    case 'delclass2': adminCall('deleteClass', [], function(){ closeModal(); store('c', null); S.pw = ''; showPick(); }); break;
+    case 'delclass2': store('bg_' + S.code, null); store('bgimg_' + S.code, null); adminCall('deleteClass', [], function(){ closeModal(); store('c', null); S.pw = ''; showPick(); }); break;
   }
 }
 function rosterOf(st){
