@@ -669,6 +669,8 @@
   function stale() { for (var id in books) books[id].freshAt = 0; }
 
   function exec(name, args, tries) {
+    // 이 기기에 저장 방식: 다른 탭이 그사이 저장했을 수 있으니 매번 저장소에서 새로 읽는다. (읽기는 빠르다)
+    if (!tries && isLocal()) { books = {}; listAt = 0; }
     return ensureMode().then(function () {
       return name === 'listClasses' || (isLocal() && !listAt) ? loadList() : null;
     }).then(function () {
@@ -694,7 +696,13 @@
 
   var chain = Promise.resolve();
   function run(name, args) {
-    var p = chain.then(function () { return exec(name, args, 0); });
+    var p = chain.then(function () {
+      // 여러 탭이 같은 기록을 동시에 읽고 쓰지 않도록, 지원하는 브라우저에서는 탭 사이 잠금을 건다.
+      if (isLocal() && navigator.locks && navigator.locks.request) {
+        return navigator.locks.request('one-role-local', function () { return exec(name, args, 0); });
+      }
+      return exec(name, args, 0);
+    });
     chain = p.then(function () {}, function () {});
     return p;
   }

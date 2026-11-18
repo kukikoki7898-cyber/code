@@ -213,7 +213,9 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 }
 @media (max-width:520px){
   .cal{width:56px;border-width:2px}.cal .m{font-size:12px}.cal .d{font-size:24px}.cal .w{font-size:11px}
-  .title{font-size:20px;margin-left:10px;flex:1 1 0;min-width:0}
+  .title{font-size:20px;margin-left:10px;flex:1 1 calc(100% - 80px);min-width:0}
+  .fslab{display:none}
+  .clock{margin-top:10px !important;margin-right:8px !important}
   .title em{display:inline-block}
   .grow{display:none}
   .clock{font-size:19px;margin:0}
@@ -233,7 +235,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-16 15:54";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-18 11:26";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -326,13 +328,18 @@ function marks_(n) {
   return s;
 }
 
+/** 칸 값: '○○' (도장 2개), '결석' 또는 '결석 ○○' (결석 처리 전에 찍은 도장 2개를 기억해 둔다) */
 function parseCell_(v) {
-  var s = str_(v);
-  if (s === ABSENT) return { count: 0, absent: true };
+  var s = str_(v), absent = s.indexOf(ABSENT) === 0;
+  if (absent) s = s.slice(ABSENT.length);
   var n = 0;
   for (var i = 0; i < s.length; i++) if (s.charAt(i) === MARK) n++;
   if (!n && /^\d+$/.test(s)) n = parseInt(s, 10);
-  return { count: n, absent: false };
+  return { count: n, absent: absent };
+}
+
+function cellText_(n, absent) {
+  return absent ? ABSENT + (n > 0 ? ' ' + marks_(n) : '') : marks_(n);
 }
 
 /* ---------- 학급 목록 (스크립트 속성) ---------- */
@@ -452,7 +459,7 @@ function tidySheet_(sh, name) {
       sh.getRange(1, 1, rows, cols).setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
       var body = sh.getRange(2, 4, maxR - 1, Math.max(maxC - 3, 1));
       sh.setConditionalFormatRules([
-        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([body]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextContains(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([body]).build(),
         SpreadsheetApp.newConditionalFormatRule().whenTextContains(MARK).setBackground('#fff4c7').setFontColor('#c0392b').setRanges([body]).build()
       ]);
     } else if (name === SH_REST) {
@@ -767,6 +774,8 @@ function record(code, no, delta, date) {
   var cls = getClass_(code);
   delta = delta > 0 ? 1 : -1;
   return mutate_(cls, no, date, function (cell, st) {
+    // 결석인 날은 도장을 바꾸지 않는다. (결석을 풀면 원래 도장이 돌아온다)
+    if (cell.absent) return { text: cellText_(cell.count, true), out: { no: st.no, done: 0, absent: true } };
     var n = clamp_(cell.count + delta, 0, st.target);
     return { text: marks_(n), out: { no: st.no, done: n } };
   });
@@ -836,10 +845,13 @@ function saveRoster(code, pw, list) {
 function setAbsent(code, pw, no, absent, date) {
   var cls = getClass_(code);
   checkPw_(cls, pw);
-  return mutate_(cls, no, date, function (cell, st) {
-    if (absent) return { text: ABSENT, out: { no: st.no, absent: true, done: 0 } };
-    return { text: cell.absent ? '' : marks_(cell.count), out: { no: st.no, absent: false, done: cell.absent ? 0 : cell.count } };
+  var out = mutate_(cls, no, date, function (cell, st) {
+    var n = Math.min(cell.count, st.target);
+    return { text: cellText_(n, !!absent), out: { no: st.no, absent: !!absent, done: absent ? 0 : n } };
   });
+  // 스티커판 통계(이번 달 일수 등)가 바로 맞도록 학급 전체 상태도 함께 돌려준다.
+  if (out && !out.stale) out.state = buildState_(cls, openBook_(cls));
+  return out;
 }
 
 function saveRest(code, pw, list) {
@@ -998,8 +1010,8 @@ function 설치점검() {
     // 4. 결석
     var ab = setAbsent(CODE, PW, '3', true, today);
     check('결석 표시', ab.absent === true && getState(CODE).students[2].absent === true);
-    setAbsent(CODE, PW, '3', false, today);
-    record(CODE, '3', 1, today);
+    var un = setAbsent(CODE, PW, '3', false, today);
+    check('결석 해제 뒤 도장 복원', un.done === 1 && getState(CODE).students[2].done === 1, JSON.stringify({ done: un.done }));
 
     // 5. 쉬는 날
     var far = addDays_(today, 400);
@@ -1732,6 +1744,8 @@ function 설치점검() {
   function stale() { for (var id in books) books[id].freshAt = 0; }
 
   function exec(name, args, tries) {
+    // 이 기기에 저장 방식: 다른 탭이 그사이 저장했을 수 있으니 매번 저장소에서 새로 읽는다. (읽기는 빠르다)
+    if (!tries && isLocal()) { books = {}; listAt = 0; }
     return ensureMode().then(function () {
       return name === 'listClasses' || (isLocal() && !listAt) ? loadList() : null;
     }).then(function () {
@@ -1757,7 +1771,13 @@ function 설치점검() {
 
   var chain = Promise.resolve();
   function run(name, args) {
-    var p = chain.then(function () { return exec(name, args, 0); });
+    var p = chain.then(function () {
+      // 여러 탭이 같은 기록을 동시에 읽고 쓰지 않도록, 지원하는 브라우저에서는 탭 사이 잠금을 건다.
+      if (isLocal() && navigator.locks && navigator.locks.request) {
+        return navigator.locks.request('one-role-local', function () { return exec(name, args, 0); });
+      }
+      return exec(name, args, 0);
+    });
     chain = p.then(function () {}, function () {});
     return p;
   }
@@ -1973,6 +1993,32 @@ function topHtml(right){
   return '<div class="top"><div class="cal' + (st.dow === 0 || st.dow === 6 ? ' sun' : '') + '"><div class="m">' + (+p[1]) + '월</div><div class="d">' + (+p[2]) +
     '</div><div class="w">' + WEEK[st.dow] + '요일</div></div><h1 class="title">' + esc(st.name) + ' <em>1인 1역</em></h1><div class="clock" id="clock">' + clockHtml() + '</div><div class="grow"></div>' + right + '</div>';
 }
+/* ---------- 전체화면 ---------- */
+function fsOk(){
+  var d = document, e = d.documentElement;
+  return !!((d.fullscreenEnabled || d.webkitFullscreenEnabled) && (e.requestFullscreen || e.webkitRequestFullscreen));
+}
+function fsOn(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function fsBtn(){
+  if (!fsOk()) return '';
+  return '<button class="btn small fsbtn" data-act="fs" title="전체화면">' + fsLabel() + '</button>';
+}
+function fsLabel(){ return fsOn() ? '⤡<span class="fslab"> 작게</span>' : '⤢<span class="fslab"> 전체화면</span>'; }
+function fsToggle(){
+  var d = document, e = d.documentElement;
+  try {
+    if (fsOn()) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    else { var p = (e.requestFullscreen || e.webkitRequestFullscreen).call(e); if (p && p.catch) p.catch(function(){ toast('전체화면을 쓸 수 없는 화면이에요.'); }); }
+  } catch (err) { toast('전체화면을 쓸 수 없는 화면이에요.'); }
+}
+function fsChanged(){
+  var bs = document.querySelectorAll('.fsbtn');
+  for (var i = 0; i < bs.length; i++) bs[i].innerHTML = fsLabel();
+  setTimeout(function(){ sizeFx(); fit(); }, 120);
+}
+document.addEventListener('fullscreenchange', fsChanged);
+document.addEventListener('webkitfullscreenchange', fsChanged);
+
 function clockHtml(){
   var d = new Date(), h = d.getHours(), m = d.getMinutes();
   return '<small>' + (h < 12 ? '오전' : '오후') + '</small>' + (h % 12 || 12) + '<i>:</i>' + (m < 10 ? '0' : '') + m;
@@ -2004,7 +2050,7 @@ function slotsHtml(s, i, fresh){
 function renderBoard(){
   var st = S.st, a = st.students, c = counts();
   var right = '<span class="net" id="net"></span><div class="prog"><span class="lab">다 한 친구</span><div class="bar"><i id="bar"></i></div><span class="num" id="num"></span></div>' +
-    '<button class="btn green" data-act="stickers">스티커판</button><button class="btn small" data-act="settings">설정</button>';
+    '<button class="btn green" data-act="stickers">스티커판</button>' + fsBtn() + '<button class="btn small" data-act="settings">설정</button>';
   var h = topHtml(right);
   if (st.rest && !S.force) {
     h += '<div class="center" style="min-height:60vh"><h2>오늘은 쉬는 날이에요</h2><p class="hand">' + esc(st.rest) + ' · 푹 쉬고 다음에 만나요!</p>' +
@@ -2080,15 +2126,20 @@ function undo(i){
 }
 
 /* ---------- 저장 줄 세우기 ---------- */
-function push(no, delta){ S.q.push({ no: no, delta: delta, date: S.st.today }); pump(); }
+// 줄마다 어느 학급의 도장인지 적어 둔다. 저장이 밀린 사이에 다른 학급을 열어도 원래 학급에 저장된다.
+function push(no, delta){ S.q.push({ code: S.code, no: no, delta: delta, date: S.st.today }); pump(); }
 function pump(){
   netShow();
   if (S.busy || !S.q.length) return;
   S.busy = true;
   var op = S.q[0];
-  api('record', [S.code, op.no, op.delta, op.date], function(res){
+  api('record', [op.code, op.no, op.delta, op.date], function(res){
     S.busy = false; S.bad = false; S.q.shift();
-    if (res && res.stale) { S.q = []; netShow(); toast('날짜나 명단이 바뀌어서 새로 불러올게요.'); refresh(); return; }
+    if (res && res.stale) {
+      S.q = S.q.filter(function(o){ return o.code !== op.code; });
+      netShow(); if (op.code === S.code) { toast('날짜나 명단이 바뀌어서 새로 불러올게요.'); refresh(); }
+      pump(); return;
+    }
     pump();
   }, function(){
     S.busy = false; S.bad = true; netShow();
@@ -2105,7 +2156,7 @@ function netShow(){
 /* ---------- 스티커판 ---------- */
 function renderStickers(){
   var st = S.st, a = st.students;
-  var h = topHtml('<button class="btn yellow" data-act="board">← 이름표로</button>');
+  var h = topHtml(fsBtn() + '<button class="btn yellow" data-act="board">← 이름표로</button>');
   h += '<div class="wrap"><table class="st"><tr><th style="text-align:left;padding-left:14px">이번 주 스티커판</th>';
   for (var j = 0; j < st.week.length; j++) {
     var p = st.week[j].date.split('-');
@@ -2282,6 +2333,7 @@ function act(a, el){
     case 'bulkadd': applyBulk(false); break;
     case 'bulkset': applyBulk(true); break;
     case 'stamp': stamp(i); break;
+    case 'fs': fsToggle(); break;
     case 'undo': undo(i); break;
     case 'force': S.force = true; render(); break;
     case 'stickers': S.view = 'stickers'; render(); break;
@@ -2309,7 +2361,8 @@ function act(a, el){
       var s = S.st.students[i];
       adminCall('setAbsent', [s.no, !s.absent, S.st.today], function(r){
         if (r && r.stale) { toast('날짜가 바뀌었어요. 새로 불러옵니다.'); refresh(); return; }
-        s.absent = r.absent; s.done = r.done; render();
+        if (r.state) setState(r.state); else { s.absent = r.absent; s.done = r.done; }
+        render();
       });
       break;
     case 'addrest': S.rest.push({ start: S.st.today, end: S.st.today, name: '' }); render(); break;
@@ -2396,6 +2449,9 @@ document.addEventListener('keydown', function(ev){
   if (ev.target.id === 'pw') login();
 });
 window.addEventListener('resize', function(){ sizeFx(); fit(); });
+window.addEventListener('storage', function(e){
+  if (e.key && (e.key.indexOf('or_book_') === 0 || e.key === 'or_classes')) refresh();
+});
 
 // 날짜가 바뀌면 바로, 그 밖에는 10분마다 새로 불러온다.
 setInterval(function(){

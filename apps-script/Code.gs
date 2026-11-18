@@ -89,13 +89,18 @@ function marks_(n) {
   return s;
 }
 
+/** 칸 값: '○○' (도장 2개), '결석' 또는 '결석 ○○' (결석 처리 전에 찍은 도장 2개를 기억해 둔다) */
 function parseCell_(v) {
-  var s = str_(v);
-  if (s === ABSENT) return { count: 0, absent: true };
+  var s = str_(v), absent = s.indexOf(ABSENT) === 0;
+  if (absent) s = s.slice(ABSENT.length);
   var n = 0;
   for (var i = 0; i < s.length; i++) if (s.charAt(i) === MARK) n++;
   if (!n && /^\d+$/.test(s)) n = parseInt(s, 10);
-  return { count: n, absent: false };
+  return { count: n, absent: absent };
+}
+
+function cellText_(n, absent) {
+  return absent ? ABSENT + (n > 0 ? ' ' + marks_(n) : '') : marks_(n);
 }
 
 /* ---------- 학급 목록 (스크립트 속성) ---------- */
@@ -215,7 +220,7 @@ function tidySheet_(sh, name) {
       sh.getRange(1, 1, rows, cols).setBorder(true, true, true, true, true, true, C_LINE, SpreadsheetApp.BorderStyle.SOLID);
       var body = sh.getRange(2, 4, maxR - 1, Math.max(maxC - 3, 1));
       sh.setConditionalFormatRules([
-        SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([body]).build(),
+        SpreadsheetApp.newConditionalFormatRule().whenTextContains(ABSENT).setBackground('#e8e8e8').setFontColor('#888888').setRanges([body]).build(),
         SpreadsheetApp.newConditionalFormatRule().whenTextContains(MARK).setBackground('#fff4c7').setFontColor('#c0392b').setRanges([body]).build()
       ]);
     } else if (name === SH_REST) {
@@ -530,6 +535,8 @@ function record(code, no, delta, date) {
   var cls = getClass_(code);
   delta = delta > 0 ? 1 : -1;
   return mutate_(cls, no, date, function (cell, st) {
+    // 결석인 날은 도장을 바꾸지 않는다. (결석을 풀면 원래 도장이 돌아온다)
+    if (cell.absent) return { text: cellText_(cell.count, true), out: { no: st.no, done: 0, absent: true } };
     var n = clamp_(cell.count + delta, 0, st.target);
     return { text: marks_(n), out: { no: st.no, done: n } };
   });
@@ -599,10 +606,13 @@ function saveRoster(code, pw, list) {
 function setAbsent(code, pw, no, absent, date) {
   var cls = getClass_(code);
   checkPw_(cls, pw);
-  return mutate_(cls, no, date, function (cell, st) {
-    if (absent) return { text: ABSENT, out: { no: st.no, absent: true, done: 0 } };
-    return { text: cell.absent ? '' : marks_(cell.count), out: { no: st.no, absent: false, done: cell.absent ? 0 : cell.count } };
+  var out = mutate_(cls, no, date, function (cell, st) {
+    var n = Math.min(cell.count, st.target);
+    return { text: cellText_(n, !!absent), out: { no: st.no, absent: !!absent, done: absent ? 0 : n } };
   });
+  // 스티커판 통계(이번 달 일수 등)가 바로 맞도록 학급 전체 상태도 함께 돌려준다.
+  if (out && !out.stale) out.state = buildState_(cls, openBook_(cls));
+  return out;
 }
 
 function saveRest(code, pw, list) {
@@ -761,8 +771,8 @@ function 설치점검() {
     // 4. 결석
     var ab = setAbsent(CODE, PW, '3', true, today);
     check('결석 표시', ab.absent === true && getState(CODE).students[2].absent === true);
-    setAbsent(CODE, PW, '3', false, today);
-    record(CODE, '3', 1, today);
+    var un = setAbsent(CODE, PW, '3', false, today);
+    check('결석 해제 뒤 도장 복원', un.done === 1 && getState(CODE).students[2].done === 1, JSON.stringify({ done: un.done }));
 
     // 5. 쉬는 날
     var far = addDays_(today, 400);
