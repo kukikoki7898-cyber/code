@@ -70,6 +70,17 @@ button{cursor:pointer}
 
 /* 이름표 */
 .grid{display:flex;flex-wrap:wrap;justify-content:center;padding:8px 10px 14px;font-size:22px}
+/* 아래쪽(저학년): 이름표를 화면 아래 부분에 모으고, 위에는 큰 안내를 둔다 */
+.board.low{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.board.low .grid{flex:none;margin-top:auto;align-content:flex-end;padding-bottom:10px}
+.hero{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 16px;overflow:hidden}
+.hero .big{font-size:clamp(28px,5.2vw,86px);line-height:1.1}
+.hero .big b{font-weight:400;color:var(--red)}
+.hero .sub{font-size:clamp(17px,2vw,32px);margin-top:.35em}
+.hero .arrow{font-size:clamp(22px,3vw,48px);margin-top:.2em;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(.25em)}}
+@media (max-height:560px){.hero .sub,.hero .arrow{display:none}}
+.hero.tight .sub,.hero.tight .arrow{display:none}
 .card{
   position:relative;width:12em;height:9.2em;margin:.45em;padding:.6em .7em;
   border:.12em solid var(--ink);border-radius:var(--cut);box-shadow:.2em .26em 0 rgba(43,42,40,.2);cursor:pointer;
@@ -235,7 +246,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-18 11:26";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-18 11:38";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -359,7 +370,7 @@ function getClass_(code) {
 
 function putClass_(c) {
   props_().setProperty('class_' + c.code, JSON.stringify({
-    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false, align: c.align === 'low' ? 'low' : ''
   }));
 }
 
@@ -682,7 +693,7 @@ function buildState_(cls, ss) {
   }
 
   return {
-    code: cls.code, name: cls.name, sound: cls.sound !== false,
+    code: cls.code, name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '',
     today: today, dow: dow_(today), rest: restReason_(today, rest),
     week: week, students: students, days: dates.length
   };
@@ -788,7 +799,7 @@ function auth(code, pw) {
   checkPw_(cls, pw);
   var ss = openBook_(cls);
   return {
-    name: cls.name, sound: cls.sound !== false, sheetUrl: sheetUrl_(cls.sheetId),
+    name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId),
     roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
   };
 }
@@ -890,6 +901,7 @@ function updateClass(code, pw, change) {
     cls.name = name;
   }
   if (change.sound !== undefined) cls.sound = !!change.sound;
+  if (change.align !== undefined) cls.align = change.align === 'low' ? 'low' : '';
   if (change.newPw !== undefined) {
     if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
     cls.pw = hash_(cls.code, String(change.newPw));
@@ -935,7 +947,7 @@ function updateClass(code, pw, change) {
       }
     });
   }
-  return { name: cls.name, sound: cls.sound, sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+  return { name: cls.name, sound: cls.sound, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
 }
 
 /** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */
@@ -1617,7 +1629,7 @@ function 설치점검() {
       for (var i = 0; i < f.length; i++) {
         var a = f[i].appProperties || {};
         if (!a.code || classes[a.code]) continue;
-        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0' };
+        classes[a.code] = { name: a.name || '이름 없는 학급', sheetId: f[i].id, pw: a.pw || '', sound: a.sound !== '0', align: a.al === '1' ? 'low' : '' };
       }
       listAt = Date.now();
     });
@@ -1640,7 +1652,7 @@ function 설치점검() {
         if (k.indexOf('class_') !== 0) { misc[k] = String(v); return; }
         var code = k.slice(6), c = JSON.parse(v), prev = classes[code];
         classes[code] = c;
-        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1' } });
+        P.drive.push({ id: c.sheetId, props: { oneRole: '1', code: code, name: c.name, pw: c.pw, sound: c.sound === false ? '0' : '1', al: c.align === 'low' ? '1' : null } });
         if (prev && prev.sheetId !== c.sheetId) P.drive.push({ id: prev.sheetId, props: { oneRole: null, code: null } });
       },
       deleteProperty: function (k) {
@@ -1960,6 +1972,7 @@ function newClassModal(){
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
     '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
     '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
+    '<label class="hand" style="display:flex;align-items:center;font-size:19px;margin:-4px 0 4px"><input type="checkbox" id="nc-low" style="width:24px;height:24px;margin-right:8px">저학년이에요 (이름표를 화면 아래쪽에)</label>' +
     '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="createclass">만들기</button></div>');
 }
 
@@ -2058,11 +2071,12 @@ function renderBoard(){
   } else if (!a.length) {
     h += '<div class="center" style="min-height:60vh"><h2>아직 이름표가 없어요</h2><p class="hand">선생님이 친구들과 역할을 넣어 주세요</p><button class="btn yellow" data-act="settings">친구 넣으러 가기</button></div>';
   } else {
+    if (isLow()) h += '<div class="hero" id="hero"><div class="big">다 한 친구 <b id="heronum"></b></div><div class="sub hand">자기 이름표를 눌러 도장을 꾹 찍어요</div><div class="arrow">⬇</div></div>';
     h += '<div class="grid" id="grid">';
     for (var i = 0; i < a.length; i++) h += cardHtml(a[i], i);
     h += '</div>';
   }
-  app.innerHTML = h;
+  app.innerHTML = '<div class="board' + (isLow() && a.length && !(st.rest && !S.force) ? ' low' : '') + '">' + h + '</div>';
   fit(); prog(c); netShow();
 }
 function prog(c){
@@ -2072,16 +2086,37 @@ function prog(c){
   var pct = c.n ? Math.round(c.d / c.n * 100) : 0;
   bar.style.width = pct + '%'; bar.className = pct === 0 || pct === 100 ? 'zero' : '';
   num.textContent = c.d + ' / ' + c.n;
+  var hn = document.getElementById('heronum'); if (hn) hn.textContent = c.d + ' / ' + c.n;
 }
+/* 저학년: 이름표를 화면 아래쪽 이만큼에만 둔다 (아이 손이 닿는 높이) */
+var LOW_PART = 0.62;
+function isLow(){ return !!(S.st && S.st.align === 'low'); }
 function fit(){
   var g = document.getElementById('grid'); if (!g) return;
-  var n = S.st.students.length, W = g.clientWidth - 20, H = window.innerHeight - g.offsetTop - 22, best = 0;
-  for (var cols = 1; cols <= 12; cols++) {
-    var fs = Math.min(34, W / cols / 12.9), rows = Math.ceil(n / cols);
-    if (rows * fs * 10.1 <= H) { best = fs; break; }
-    best = fs;
-  }
-  g.style.fontSize = Math.max(Math.min(13, W / 2 / 12.9), best) + 'px';
+  var n = S.st.students.length, W = g.clientWidth - 20, floor = Math.min(13, W / 2 / 12.9);
+  // 높이 H 안에 다 들어가는 가장 큰 글자 크기를 찾는다.
+  var pick = function(H){
+    var fs = floor;
+    for (var cols = 1; cols <= 12; cols++) {
+      fs = Math.min(34, W / cols / 12.9);
+      if (Math.ceil(n / cols) * fs * 10.1 <= H) return { fs: fs, ok: fs >= floor };
+    }
+    return { fs: fs, ok: false };
+  };
+  var board = g.parentNode, hero = document.getElementById('hero');
+  if (!isLow()) { g.style.fontSize = Math.max(floor, pick(window.innerHeight - g.offsetTop - 22).fs) + 'px'; return; }
+  // 아래쪽(저학년): 먼저 화면 아래 부분에만 넣어 보고, 안 되면 위로 넓히고, 그래도 안 되면 보통 화면처럼 스크롤한다.
+  var top = board.querySelector('.top'), full = window.innerHeight - (top ? top.offsetHeight : 100) - 22;
+  var low = pick(Math.min(window.innerHeight * LOW_PART, full + 22) - 22), r = low;
+  if (!low.ok) r = pick(full);
+  board.className = r.ok ? 'board low' : 'board';
+  if (hero) { hero.style.display = low.ok ? '' : 'none'; hero.className = 'hero'; }
+  g.style.fontSize = Math.max(floor, r.fs) + 'px';
+  if (hero && low.ok && hero.scrollHeight > hero.clientHeight + 2) {
+    hero.className = 'hero tight';
+    if (hero.scrollHeight > hero.clientHeight + 2) hero.style.visibility = 'hidden';
+    else hero.style.visibility = '';
+  } else if (hero) hero.style.visibility = '';
 }
 function redrawCard(i, fresh){
   var s = S.st.students[i], el = document.getElementById('card-' + i); if (!el) return;
@@ -2296,6 +2331,9 @@ function renderSettings(){
     }
     h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
+      '<h3>이름표 위치</h3><p class="note">저학년은 키가 작으니 이름표를 화면 아래쪽에 모아 두면 손이 잘 닿아요.</p><div class="chips">' +
+        '<button class="btn' + (ad.align === 'low' ? '' : ' green') + '" data-act="align" data-v="">화면 전체</button>' +
+        '<button class="btn' + (ad.align === 'low' ? ' green' : '') + '" data-act="align" data-v="low">아래쪽 (저학년)</button></div>' +
       '<h3>효과음</h3><div class="field"><button class="btn' + (ad.sound ? ' green' : '') + '" data-act="sound">' + (ad.sound ? '켜져 있어요 (누르면 끄기)' : '꺼져 있어요 (누르면 켜기)') + '</button></div>' +
       (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?c=' + S.code) + '</div><br>' : '') +
       '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
@@ -2321,12 +2359,13 @@ function act(a, el){
     case 'close': closeModal(); break;
     case 'createclass':
       el.disabled = true;
-      var npw = val('nc-pw');
+      var npw = val('nc-pw'), nlow = !!(document.getElementById('nc-low') || {}).checked;
       api('createClass', [val('nc-name'), val('nc-url'), npw], function(r){
         // 만든 김에 바로 명단 넣는 화면으로 간다.
         closeModal(); S.code = r.code; S.force = false; store('c', r.code);
         app.innerHTML = '<div class="center"><h2>학급을 만들었어요!</h2></div>';
-        enterSettings(npw, function(){ bulkModal(true); });
+        var go = function(){ enterSettings(npw, function(){ bulkModal(true); }); };
+        if (nlow) api('updateClass', [r.code, npw, { align: 'low' }], go, go); else go();
       }, function(m){ el.disabled = false; toast(m); });
       break;
     case 'bulk': bulkModal(false); break;
@@ -2390,6 +2429,9 @@ function act(a, el){
     case 'savepw':
       var np = val('s-pw');
       adminCall('updateClass', [{ newPw: np }], function(){ S.pw = np; render(); toast('비밀번호를 바꿨어요.'); });
+      break;
+    case 'align':
+      adminCall('updateClass', [{ align: el.getAttribute('data-v') }], function(r){ S.admin.align = r.align; S.st.align = r.align; render(); toast(r.align === 'low' ? '이름표를 아래쪽에 모았어요. [칠판으로]를 눌러 확인해 보세요.' : '이름표를 화면 전체에 펼쳤어요.'); });
       break;
     case 'sound': adminCall('updateClass', [{ sound: !S.admin.sound }], function(r){ S.admin.sound = r.sound; S.st.sound = r.sound; render(); }); break;
     case 'pick': store('c', null); S.pw = ''; showPick(); break;
