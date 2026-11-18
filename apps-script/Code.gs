@@ -120,7 +120,7 @@ function getClass_(code) {
 
 function putClass_(c) {
   props_().setProperty('class_' + c.code, JSON.stringify({
-    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false
+    name: c.name, sheetId: c.sheetId, pw: c.pw, sound: c.sound !== false, align: c.align === 'low' ? 'low' : ''
   }));
 }
 
@@ -443,7 +443,7 @@ function buildState_(cls, ss) {
   }
 
   return {
-    code: cls.code, name: cls.name, sound: cls.sound !== false,
+    code: cls.code, name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '',
     today: today, dow: dow_(today), rest: restReason_(today, rest),
     week: week, students: students, days: dates.length
   };
@@ -549,7 +549,7 @@ function auth(code, pw) {
   checkPw_(cls, pw);
   var ss = openBook_(cls);
   return {
-    name: cls.name, sound: cls.sound !== false, sheetUrl: sheetUrl_(cls.sheetId),
+    name: cls.name, sound: cls.sound !== false, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId),
     roster: readRoster_(ss), rest: readRest_(ss), state: buildState_(cls, ss)
   };
 }
@@ -651,6 +651,7 @@ function updateClass(code, pw, change) {
     cls.name = name;
   }
   if (change.sound !== undefined) cls.sound = !!change.sound;
+  if (change.align !== undefined) cls.align = change.align === 'low' ? 'low' : '';
   if (change.newPw !== undefined) {
     if (String(change.newPw).length < 4) throw new Error('비밀번호는 4자 이상으로 정해 주세요.');
     cls.pw = hash_(cls.code, String(change.newPw));
@@ -696,7 +697,7 @@ function updateClass(code, pw, change) {
       }
     });
   }
-  return { name: cls.name, sound: cls.sound, sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
+  return { name: cls.name, sound: cls.sound, align: cls.align === 'low' ? 'low' : '', sheetUrl: sheetUrl_(cls.sheetId), copied: copied };
 }
 
 /** 학급을 목록에서 지운다. 스프레드시트는 그대로 남는다. */

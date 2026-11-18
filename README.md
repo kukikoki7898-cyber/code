@@ -86,7 +86,7 @@
 
 ```
 node tools/build-web.js --mock /tmp/web.html && node test/run-web.js /tmp/web.html /tmp/shots   # 웹 버전
-node test/run-review.js /tmp/web.html /tmp/preview.html   # 두 탭, 결석 해제, 학급 전환 중 재시도, 전체화면
+node test/run-review.js /tmp/web.html /tmp/preview.html /tmp/shots   # 두 탭, 결석 해제, 학급 전환 중 재시도, 전체화면, 아래쪽 배치
 node test/build-preview.js /tmp/preview.html
 node test/run.js /tmp/preview.html /tmp/shots   # playwright 필요
 ```

@@ -1,6 +1,6 @@
 // 외부 검토에서 나온 문제 3가지를 재현하는 검사
 //   node tools/build-web.js --mock <web.html> && node test/build-preview.js <gas.html>
-//   node test/run-review.js <web.html> <gas.html>
+//   node test/run-review.js <web.html> <gas.html> <스크린샷 폴더>
 var { chromium } = require('playwright');
 var results = [];
 function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + name + (detail ? '  (' + detail + ')' : '')); }
@@ -92,6 +92,54 @@ function check(name, ok, detail) { results.push((ok ? '통과 ' : '실패 ') + n
     check('4-3. 다시 누르면 돌아온다', !st2[0] && /전체화면/.test(st2[1]), JSON.stringify(st2));
     await f.click('[data-act=stickers]'); await f.waitForSelector('table.st');
     check('4-4. 스티커판에도 버튼이 있다', await f.locator('.fsbtn').count() === 1);
+  }
+
+  // ---- 5. 이름표 위치: 아래쪽(저학년) ----
+  var lc = await b.newContext({ viewport: { width: 1920, height: 1080 } });
+  var L = await lc.newPage();
+  await L.goto(web); await L.waitForSelector('#nc-name');
+  await L.fill('#nc-name', '1학년 1반'); await L.fill('#nc-pw', '1234'); await L.check('#nc-low'); await L.click('[data-act=createclass]');
+  await L.waitForSelector('#bulk');
+  var names = []; for (var k = 1; k <= 24; k++) names.push('학생' + k + ' 역할' + k);
+  await L.fill('#bulk', names.join('\n')); await L.click('[data-act=bulkset]'); await L.click('[data-act=saveroster]');
+  await L.waitForFunction(function () { var t = document.querySelector('.toast'); return t && /저장했어요/.test(t.textContent); });
+  await L.click('[data-act=tab][data-tab=class]');
+  check('5. 새 학급 만들 때 고른 "아래쪽"이 설정에 반영된다', /green/.test(await L.getAttribute('[data-act=align][data-v=low]', 'class')));
+  await L.click('[data-act=board]'); await L.waitForSelector('.card');
+  var geo = await L.evaluate(function () {
+    var r = [].map.call(document.querySelectorAll('.card'), function (c) { return c.getBoundingClientRect(); });
+    return { top: Math.min.apply(null, r.map(function (x) { return x.top; })), bottom: Math.max.apply(null, r.map(function (x) { return x.bottom; })),
+      h: innerHeight, scroll: document.documentElement.scrollHeight, hero: (document.getElementById('heronum') || {}).textContent };
+  });
+  check('5-2. 이름표가 모두 화면 아래쪽 40% 아래에 있다', geo.top >= geo.h * 0.37, '맨 위 ' + Math.round(geo.top) + 'px / ' + geo.h);
+  check('5-3. 이름표가 화면 안에 다 들어간다 (스크롤 없음)', geo.bottom <= geo.h && geo.scroll <= geo.h + 1, '맨 아래 ' + Math.round(geo.bottom));
+  check('5-4. 위쪽 빈 곳에 진행 상황이 크게 보인다', geo.hero === '0 / 24', JSON.stringify(geo.hero));
+  await L.screenshot({ path: process.argv[4] + '/low-1920.png' });
+  await L.click('#card-23'); await L.waitForTimeout(800);
+  check('5-5. 아래쪽 배치에서도 도장이 찍힌다', (await L.evaluate(function () { return document.getElementById('heronum').textContent; })) === '1 / 24');
+  // 다시 화면 전체로
+  await L.click('[data-act=settings]'); await L.fill('#pw', '1234'); await L.click('[data-act=login]');
+  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=class]'); await L.click('[data-act=align][data-v=""]');
+  await L.waitForTimeout(400); await L.click('[data-act=board]'); await L.waitForSelector('.card');
+  var top2 = await L.evaluate(function () { return document.querySelector('#card-0').getBoundingClientRect().top; });
+  check('5-6. "화면 전체"로 돌리면 위에서부터 채운다', top2 < 200 && !(await L.locator('#hero').count()), '첫 이름표 ' + Math.round(top2) + 'px');
+  // 새로 고쳐도 설정이 남는다 (아래쪽으로 다시 바꾼 뒤)
+  await L.click('[data-act=settings]'); await L.fill('#pw', '1234'); await L.click('[data-act=login]');
+  await L.waitForSelector('.tabs'); await L.click('[data-act=tab][data-tab=class]'); await L.click('[data-act=align][data-v=low]');
+  await L.waitForTimeout(400); await L.reload(); await L.waitForSelector('.card');
+  check('5-7. 새로 고쳐도 아래쪽 배치가 남는다', await L.locator('.board.low').count() === 1);
+  for (var vp of [[1280, 720], [820, 1180], [390, 844]]) {
+    await L.setViewportSize({ width: vp[0], height: vp[1] }); await L.waitForTimeout(300);
+    var g2 = await L.evaluate(function () {
+      var last = document.querySelector('#card-23').getBoundingClientRect(), hero = document.getElementById('hero'), top = document.querySelector('.top').getBoundingClientRect();
+      var hb = hero && hero.style.display !== 'none' && hero.style.visibility !== 'hidden' ? hero.querySelector('.big').getBoundingClientRect() : null;
+      return { sw: document.documentElement.scrollWidth, w: innerWidth, lastBottom: last.bottom + scrollY, docH: document.documentElement.scrollHeight,
+        heroOk: !hb || hb.top >= top.bottom - 1, low: !!document.querySelector('.board.low') };
+    });
+    check('5-8. ' + vp.join('x') + ' 가로 넘침 없음', g2.sw <= g2.w, g2.sw + ' / ' + g2.w);
+    check('5-9. ' + vp.join('x') + ' 마지막 이름표까지 닿을 수 있다', g2.lastBottom <= g2.docH + 1, Math.round(g2.lastBottom) + ' / ' + g2.docH);
+    check('5-10. ' + vp.join('x') + ' 큰 글씨가 머리 부분과 겹치지 않는다', g2.heroOk, g2.low ? '아래쪽 배치' : '스크롤 배치');
+    await L.screenshot({ path: process.argv[4] + '/low-' + vp[0] + '.png' });
   }
 
   console.log(results.join('\n'));
