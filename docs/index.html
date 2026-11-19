@@ -3,6 +3,7 @@
 <head>
 <base target="_top">
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://www.googleapis.com https://sheets.googleapis.com https://oauth2.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>우리 반 1인 1역</title>
 <link rel="manifest" href="manifest.json">
@@ -88,6 +89,8 @@ body.hasimg .hero .arrow{text-shadow:0 0 6px #fff,0 0 12px #fff}
 .where small{font-size:16px}
 .gload{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;background:#eaf2fb;border-radius:10px;padding:8px 10px;margin:0 0 12px;font-size:17px}
 .gload .btn{margin-top:4px}
+.privacy-note{font:14px/1.5 sans-serif;margin:8px 0 0;color:#44546a}
+.privacy-note a{color:#2b5c9a}
 /* 수업 시간 잠금 */
 .lockov{position:fixed;left:0;right:0;bottom:0;z-index:40;pointer-events:none;display:flex;align-items:center;justify-content:center;
   background:rgba(246,236,210,.72)}
@@ -287,7 +290,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-18 17:28";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-19 09:49";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -1366,7 +1369,11 @@ function 설치점검() {
       '<div style="font-size:17px;line-height:1.5;margin-bottom:16px">' + (msg || (email ? esc(email) + ' 계정으로 이어서 씁니다.' : '기록은 로그인한 계정의 구글 드라이브에 저장돼요.')) + '</div>' +
       '<button id="or-go" style="font:inherit;font-size:22px;padding:12px 26px;background:#f7cf3d;border:2.5px solid #2b2a28;border-radius:14px;cursor:pointer;box-shadow:3px 4px 0 rgba(43,42,40,.22)">구글로 로그인</button>' +
       (email ? '<div style="margin-top:14px"><button id="or-other" style="font:inherit;font-size:16px;background:none;border:0;text-decoration:underline;cursor:pointer">다른 계정으로 로그인</button></div>' : '') +
-      '<div style="margin-top:14px;font:12px sans-serif;color:#999">버전 ' + (g.ONE_ROLE_BUILD || '-') + (lastWhy ? ' · 상태: ' + esc(lastWhy) : '') + '</div>' +
+      '<div style="margin-top:16px;padding:10px 12px;background:#eaf2fb;border-radius:10px;font:14px/1.5 sans-serif;text-align:left">' +
+        '🔒 구글 비밀번호는 <b>구글 화면에만</b> 입력하고, 이 앱은 볼 수 없어요.<br>' +
+        '앱이 볼 수 있는 것은 <b>이 앱이 만든 스프레드시트뿐</b>이에요. 메일이나 다른 파일은 볼 수 없어요.<br>' +
+        '<a href="privacy.html#login" target="_blank" rel="noopener" style="color:#2b5c9a">로그인하면 무엇이 저장되나요? 자세히 보기</a></div>' +
+      '<div style="margin-top:12px;font:12px sans-serif;color:#999">버전 ' + (g.ONE_ROLE_BUILD || '-') + (lastWhy ? ' · 상태: ' + esc(lastWhy) : '') + '</div>' +
       '</div>';
     document.getElementById('or-go').onclick = function () { requestToken(false); };
     var o = document.getElementById('or-other');
@@ -2098,7 +2105,9 @@ function whereHtml(){
   };
   return '<div class="field"><label>기록을 어디에 저장할까요?</label>' +
     opt('local', !g, '이 기기에 저장', '로그인 없음. 이 기기에서만 보여요.') +
-    opt('google', g, '내 구글 시트에 저장', '구글 로그인. 어느 기기에서든 이어서 써요.') + '</div>';
+    opt('google', g, '내 구글 시트에 저장', '구글 로그인. 어느 기기에서든 이어서 써요.') +
+    '<p class="privacy-note">🔒 구글 비밀번호는 구글 화면에만 입력해요. 앱은 <b>이 앱이 만든 스프레드시트만</b> 볼 수 있어요. ' +
+    '<a href="privacy.html#login" target="_blank" rel="noopener">자세히</a></p></div>';
 }
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
@@ -2715,7 +2724,7 @@ function renderSettings(){
       '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
       '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
       (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><p class="note" style="margin:0 0 6px">로그인 없이 이 기기에만 저장하려면 <b>저장 방식 바꾸기</b>를 누르세요.</p><div class="row"><button class="btn small" data-act="mode">저장 방식 바꾸기</button></div><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
-        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' : '');
+        esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' + '<p class="note" style="margin-top:-6px">앱은 이 계정의 드라이브에서 <b>이 앱이 만든 스프레드시트만</b> 볼 수 있어요. <a href="privacy.html#login" target="_blank" rel="noopener">개인정보 안내</a></p>' : '');
     }
     h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
       '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +

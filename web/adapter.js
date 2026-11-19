@@ -174,7 +174,11 @@
       '<div style="font-size:17px;line-height:1.5;margin-bottom:16px">' + (msg || (email ? esc(email) + ' 계정으로 이어서 씁니다.' : '기록은 로그인한 계정의 구글 드라이브에 저장돼요.')) + '</div>' +
       '<button id="or-go" style="font:inherit;font-size:22px;padding:12px 26px;background:#f7cf3d;border:2.5px solid #2b2a28;border-radius:14px;cursor:pointer;box-shadow:3px 4px 0 rgba(43,42,40,.22)">구글로 로그인</button>' +
       (email ? '<div style="margin-top:14px"><button id="or-other" style="font:inherit;font-size:16px;background:none;border:0;text-decoration:underline;cursor:pointer">다른 계정으로 로그인</button></div>' : '') +
-      '<div style="margin-top:14px;font:12px sans-serif;color:#999">버전 ' + (g.ONE_ROLE_BUILD || '-') + (lastWhy ? ' · 상태: ' + esc(lastWhy) : '') + '</div>' +
+      '<div style="margin-top:16px;padding:10px 12px;background:#eaf2fb;border-radius:10px;font:14px/1.5 sans-serif;text-align:left">' +
+        '🔒 구글 비밀번호는 <b>구글 화면에만</b> 입력하고, 이 앱은 볼 수 없어요.<br>' +
+        '앱이 볼 수 있는 것은 <b>이 앱이 만든 스프레드시트뿐</b>이에요. 메일이나 다른 파일은 볼 수 없어요.<br>' +
+        '<a href="privacy.html#login" target="_blank" rel="noopener" style="color:#2b5c9a">로그인하면 무엇이 저장되나요? 자세히 보기</a></div>' +
+      '<div style="margin-top:12px;font:12px sans-serif;color:#999">버전 ' + (g.ONE_ROLE_BUILD || '-') + (lastWhy ? ' · 상태: ' + esc(lastWhy) : '') + '</div>' +
       '</div>';
     document.getElementById('or-go').onclick = function () { requestToken(false); };
     var o = document.getElementById('or-other');

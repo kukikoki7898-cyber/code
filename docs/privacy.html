@@ -3,52 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>우리 반 1인 1역 - 개인정보처리방침</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>우리 반 1인 1역 - 개인정보 안내</title>
 <style>
 body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif; line-height: 1.7; color: #2b2a28; background: #f6ecd2; margin: 0; }
-main { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
-h1 { font-size: 26px; } h2 { font-size: 19px; margin-top: 28px; }
-table { border-collapse: collapse; width: 100%; background: #fffdf6; }
-th, td { border: 1px solid #c9bfa3; padding: 8px 10px; text-align: left; vertical-align: top; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
+h1 { font-size: 26px; margin-bottom: 6px; }
+h2 { font-size: 20px; margin-top: 34px; padding-top: 6px; border-top: 2px dashed #c9bfa3; }
+.lead { font-size: 17px; }
+.sum { background: #fffdf6; border: 2px solid #2b2a28; border-radius: 12px; padding: 14px 18px; margin: 18px 0; }
+.sum li { margin: 4px 0; }
+.q { margin: 18px 0 4px; font-weight: 700; font-size: 17px; }
+.q:before { content: 'Q. '; color: #d8362b; }
+.a { margin: 0 0 10px; }
+.a:before { content: 'A. '; font-weight: 700; color: #2b5c9a; }
+table { border-collapse: collapse; width: 100%; background: #fffdf6; margin: 8px 0; }
+th, td { border: 1px solid #c9bfa3; padding: 8px 10px; text-align: left; vertical-align: top; font-size: 15px; }
+th { background: #eaf2fb; }
+code { background: #fffdf6; border: 1px solid #c9bfa3; border-radius: 4px; padding: 0 4px; font-size: 14px; word-break: break-all; }
 a { color: #2b5c9a; }
+.yes { color: #2e7d32; font-weight: 700; } .no { color: #d8362b; font-weight: 700; }
 </style>
 </head>
 <body>
 <main>
-<h1>우리 반 1인 1역 개인정보처리방침</h1>
-<p>"우리 반 1인 1역"은 교실에서 학생의 1인 1역 수행을 기록하는 무료 웹앱입니다. 이 앱에는 운영자의 서버가 없으며, 사용자가 입력한 내용은 운영자에게 전송되거나 저장되지 않습니다.</p>
+<h1>우리 반 1인 1역 개인정보 안내</h1>
+<p class="lead">이 앱에는 <b>운영자의 서버가 없습니다.</b> 앱은 선생님의 브라우저 안에서만 동작하고, 기록은 그 기기 또는 선생님 본인의 구글 드라이브에만 저장됩니다. 만든 사람을 포함해 누구에게도 보내지 않습니다.</p>
 
-<h2>1. 저장되는 정보와 위치</h2>
-<p>기본 저장 방식은 <b>이 기기에 저장하기(로그인 없음)</b>이며, 이때는 아래 정보가 모두 사용 중인 기기의 브라우저에만 저장되고, 구글을 포함해 어디로도 전송되지 않습니다. [저장 방식 바꾸기]에서 <b>구글 시트에 저장하기</b>를 고른 경우에만 아래 표와 같이 저장됩니다.</p>
+<div class="sum">
+<b>한눈에 보기</b>
+<ul>
+<li><b>이 기기에 저장</b>(기본): 로그인 없음. 모든 내용이 그 기기의 브라우저에만 저장되고 어디로도 보내지 않습니다.</li>
+<li><b>내 구글 시트에 저장</b>: 구글 로그인. 기록은 <b>로그인한 선생님의 구글 드라이브</b>에 스프레드시트로 저장됩니다.</li>
+<li>구글 비밀번호는 <b>구글 화면에만</b> 입력하며, 이 앱은 볼 수도 저장할 수도 없습니다.</li>
+<li>앱이 볼 수 있는 구글 드라이브 파일은 <b>이 앱이 만든 스프레드시트뿐</b>입니다.</li>
+<li>광고, 방문 분석, 추적 도구를 쓰지 않습니다.</li>
+</ul>
+</div>
+
+<h2 id="login">구글 로그인에 대해 자주 묻는 질문</h2>
+
+<p class="q">구글 비밀번호가 이 앱에 저장되나요?</p>
+<p class="a">아니요. [구글로 로그인]을 누르면 구글이 직접 띄운 창(<code>accounts.google.com</code>)이 열리고, 비밀번호는 그 창에만 입력합니다. 이 앱은 비밀번호를 받지 않으며, 구글이 내주는 <b>임시 출입증</b>(약 1시간 동안만 쓸 수 있는 접근 권한)만 받습니다. 이 출입증은 브라우저 메모리에만 있다가 창을 닫으면 사라집니다.</p>
+
+<p class="q">로그인하면 앱이 무엇을 볼 수 있나요?</p>
+<p class="a">로그인할 때 구글 화면에 "<b>이 앱에서 사용하는 Google Drive 파일만 보기, 수정, 생성, 삭제</b>"라고 나옵니다. 이것이 앱이 받는 권한의 전부입니다. 구글이 정한 범위라서 앱이 이보다 더 볼 수는 없습니다.</p>
 <table>
-<tr><th style="width:34%">정보</th><th>저장 위치</th></tr>
-<tr><td>학급 이름, 학생 번호·이름·역할, 날짜별 수행 기록, 결석, 쉬는 날</td><td>로그인한 사용자의 구글 드라이브에 만들어지는 스프레드시트</td></tr>
-<tr><td>설정 비밀번호 (암호화된 값)</td><td>위 스프레드시트 파일의 속성</td></tr>
-<tr><td>로그인한 구글 계정의 이메일 주소, 마지막으로 연 학급</td><td>사용 중인 기기의 브라우저 저장소</td></tr>
+<tr><th style="width:50%">볼 수 있는 것</th><th>볼 수 없는 것</th></tr>
+<tr><td><span class="yes">○</span> 이 앱이 만든 "1인 1역 기록" 스프레드시트<br><span class="yes">○</span> 로그인한 계정의 이메일 주소 (다음 로그인 때 같은 계정을 고르기 위해)</td>
+<td><span class="no">✕</span> 구글 비밀번호<br><span class="no">✕</span> 지메일(메일)<br><span class="no">✕</span> 드라이브의 다른 파일과 폴더<br><span class="no">✕</span> 주소록, 캘린더, 사진<br><span class="no">✕</span> 이 앱이 만들지 않은 스프레드시트</td></tr>
 </table>
-<p>운영자와 제3자는 위 정보에 접근할 수 없습니다. 광고, 분석, 추적 도구를 사용하지 않습니다.</p>
 
-<h2>2. 구글 계정 권한</h2>
+<p class="q">학생 이름과 기록은 어디에 저장되나요?</p>
+<p class="a">로그인한 선생님의 구글 드라이브에 "1인 1역 기록 - (학급 이름)" 파일로 저장됩니다. 선생님 드라이브에서 직접 열어 보고, 고치고, 지울 수 있습니다. 만든 사람이나 다른 선생님은 이 파일을 볼 수 없습니다. (선생님이 직접 공유한 경우는 제외)</p>
+
+<p class="q">만든 사람이 내 기록을 볼 수 있나요?</p>
+<p class="a">아니요. 앱이 구글과 직접 주고받을 뿐 중간에 거치는 서버가 없어서, 만든 사람에게 전달되는 것이 없습니다. 아래 "직접 확인하는 방법"으로 누구나 확인할 수 있습니다.</p>
+
+<p class="q">"Google에서 확인하지 않은 앱"이라고 나오는데 위험한가요?</p>
+<p class="a">개인이 만든 무료 앱이라 구글의 별도 심사를 받지 않았다는 뜻입니다. 앱이 요청하는 권한은 위 표가 전부이며, 로그인 화면에서 그 내용을 직접 확인한 뒤 계속할지 정하시면 됩니다.</p>
+
+<p class="q">그만 쓰고 싶으면 어떻게 하나요?</p>
+<p class="a">① 앱의 설정 → 시트 · 비밀번호 → [로그아웃]을 누르면 이 기기에 기억된 이메일 주소가 지워집니다. ② 구글 계정의 <a href="https://myaccount.google.com/connections">서드 파티 앱 및 서비스</a>에서 "우리 반 1인 1역"을 찾아 [액세스 권한 삭제]를 누르면 앱이 더는 드라이브에 접근할 수 없습니다. ③ 기록 파일은 드라이브에서 지우면 됩니다.</p>
+
+<h2 id="verify">직접 확인하는 방법</h2>
+<p>"안 가져간다"는 말만 믿으실 필요는 없습니다. 아래 방법으로 확인할 수 있습니다.</p>
+<ol>
+<li><b>보낼 수 있는 곳이 정해져 있습니다.</b> 앱 페이지에는 브라우저가 지키는 보안 규칙(Content-Security-Policy)이 들어 있어, 앱 코드가 정보를 보낼 수 있는 곳을 구글 주소(<code>www.googleapis.com</code>, <code>sheets.googleapis.com</code>, <code>oauth2.googleapis.com</code>, <code>accounts.google.com</code>)로만 제한합니다. 다른 주소로 보내려 하면 브라우저가 막습니다. PC 크롬에서 앱 화면을 마우스 오른쪽 버튼으로 눌러 [페이지 소스 보기]를 고르면 맨 위의 <code>Content-Security-Policy</code> 줄에서 이 규칙을 볼 수 있습니다.</li>
+<li><b>실제로 오가는 내용을 볼 수 있습니다.</b> PC 크롬에서 F12를 눌러 [Network(네트워크)] 탭을 열고 앱을 써 보면, 오가는 요청이 모두 구글 주소인 것을 확인할 수 있습니다.</li>
+<li><b>코드가 모두 공개되어 있습니다.</b> <a href="https://github.com/kukikoki7898-cyber/code">GitHub 저장소</a>에서 앱의 모든 코드를 볼 수 있습니다. 구글과 주고받는 부분은 <code>web/adapter.js</code> 한 파일에 모여 있습니다.</li>
+</ol>
+
+<h2>저장되는 정보 전체</h2>
+<table>
+<tr><th style="width:36%">정보</th><th>이 기기에 저장 (기본)</th><th>내 구글 시트에 저장</th></tr>
+<tr><td>학급 이름, 학생 번호·이름·역할, 날짜별 기록, 결석, 쉬는 날</td><td>이 기기의 브라우저</td><td>선생님 구글 드라이브의 스프레드시트</td></tr>
+<tr><td>설정 비밀번호</td><td colspan="2">원래 비밀번호가 아닌 암호화된 값(해시)만 저장</td></tr>
+<tr><td>운영 설정 (수업 시간표, 학급 목표 등)</td><td>이 기기의 브라우저</td><td>스프레드시트 파일의 속성</td></tr>
+<tr><td>배경 사진, 마지막으로 연 학급</td><td colspan="2">이 기기의 브라우저 (어디로도 보내지 않음)</td></tr>
+<tr><td>로그인한 계정의 이메일 주소</td><td>해당 없음</td><td>이 기기의 브라우저 (다음 로그인 때 계정 자동 선택용)</td></tr>
+</table>
+
+<h2>그 밖에 알려 드릴 점</h2>
 <ul>
-<li><b>이 앱으로 만든 구글 드라이브 파일 보기 및 수정</b> (drive.file): 기록용 스프레드시트를 만들고 읽고 쓰는 데만 사용합니다. 드라이브의 다른 파일은 볼 수 없습니다.</li>
-<li>로그인한 계정의 이메일 주소는 위 권한으로 구글 드라이브 계정 정보에서 읽으며, 다시 로그인할 때 같은 계정을 자동으로 고르고 설정 화면에 로그인한 계정을 보여 주는 데만 사용합니다.</li>
-</ul>
-<p>구글에서 받은 정보는 위 목적 외에 사용하지 않으며, 다른 곳으로 옮기거나 판매하지 않습니다. 이 앱의 구글 사용자 데이터 이용은 Google API 서비스 사용자 데이터 정책(제한적 사용 요건 포함)을 따릅니다.</p>
-
-<h2>3. 보관과 삭제</h2>
-<ul>
-<li>기록은 사용자의 구글 드라이브에 있으므로, 스프레드시트 파일을 지우면 모두 삭제됩니다.</li>
-<li>앱의 설정 화면에서 로그아웃하면 브라우저에 저장된 이메일 주소가 지워집니다.</li>
-<li>앱의 권한은 구글 계정의 <a href="https://myaccount.google.com/permissions">서드 파티 앱 및 서비스</a>에서 언제든 해제할 수 있습니다.</li>
+<li>앱 화면 파일은 GitHub Pages에서 내려받고, 글꼴은 Google Fonts에서 내려받습니다. 일반 웹사이트를 열 때처럼 두 곳은 접속 기록(IP 주소 등)을 남길 수 있습니다. 학생 이름이나 기록은 이 과정에 포함되지 않습니다.</li>
+<li>구글 사용자 데이터는 위에 적은 목적 외에 쓰지 않으며, 다른 곳으로 옮기거나 판매하지 않습니다. 이 앱의 구글 사용자 데이터 이용은 Google API 서비스 사용자 데이터 정책(제한적 사용 요건 포함)을 따릅니다.</li>
+<li>학생 이름은 사용하는 교사의 책임 아래 저장됩니다. 학교와 교육청의 개인정보 처리 기준에 맞게 사용해 주세요. 이름 대신 번호나 별명을 넣어도 앱은 똑같이 동작합니다.</li>
+<li>문의와 오류 제보는 <a href="https://github.com/kukikoki7898-cyber/code/issues">GitHub 저장소의 Issues</a>에 남겨 주세요.</li>
 </ul>
 
-<h2>4. 학생 정보에 관한 안내</h2>
-<p>학생 이름은 사용하는 교사의 책임 아래 교사의 구글 드라이브에 저장됩니다. 소속 학교와 교육청의 개인정보 처리 기준에 맞게 사용해 주세요. 이름 대신 번호나 별명을 입력해도 앱은 똑같이 동작합니다.</p>
-
-<h2>5. 문의</h2>
-<p>문의와 오류 제보는 <a href="https://github.com/kukikoki7898-cyber/code/issues">GitHub 저장소의 Issues</a>에 남겨 주세요.</p>
-
-<p style="margin-top:36px;color:#777">시행일: 2026년 11월 16일</p>
+<p style="margin-top:36px;color:#777">시행일: 2026년 11월 16일 · 고친 날: 2026년 11월 19일</p>
 <p><a href="./">앱으로 돌아가기</a></p>
 </main>
 </body>
