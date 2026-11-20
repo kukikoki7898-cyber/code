@@ -16,6 +16,21 @@
   'use strict';
 
   var CFG = g.ONE_ROLE_CONFIG || {};
+
+  // 아주 오래된 브라우저(Promise, fetch 가 없음)에서는 "잠깐만요…"에 멈추지 않도록 이유를 알려 주고 멈춘다.
+  if (!g.Promise || !g.fetch) {
+    var OLD = '이 브라우저는 너무 오래되어 1인 1역을 열 수 없어요. 전자칠판의 앱 스토어(Play 스토어)에서 "Chrome"을 설치해 그 브라우저로 열어 주세요.';
+    var dead = function (ok, fail) {
+      var o = { withSuccessHandler: function (f) { return dead(f, fail); }, withFailureHandler: function (f) { return dead(ok, f); } };
+      ['listClasses', 'createClass', 'getState', 'record', 'auth', 'saveRoster', 'setAbsent', 'saveRest', 'updateClass', 'deleteClass'].forEach(function (n) {
+        o[n] = function () { setTimeout(function () { if (fail) fail(new Error(OLD)); }, 0); };
+      });
+      return o;
+    };
+    g.__RUN = function () { return dead(null, null); };
+    g.ONE_ROLE = { local: function () { return true; }, googleReady: function () { return false; }, email: function () { return ''; } };
+    return;
+  }
   // 권한을 하나만 요청해야 구글 권한 화면에 체크 칸이 생기지 않고 [계속] 한 번으로 끝난다.
   var SCOPE = 'https://www.googleapis.com/auth/drive.file';
   var SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';

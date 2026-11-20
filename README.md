@@ -89,6 +89,7 @@
 ```
 node tools/build-web.js --mock /tmp/web.html && node test/run-web.js /tmp/web.html /tmp/shots   # 웹 버전
 (cd docs && python3 -m http.server 8765 &); node test/run-csp.js http://127.0.0.1:8765/ /tmp/shots <사진>   # 배포본 보안 규칙: 기능은 되고 구글 외 전송은 막힘
+node test/run-touch.js /tmp/web.html /tmp/shots   # 터치 전자칠판 흉내: 손가락 누르기, 빠른 연타, 길게 누르기, 미끄러짐
 node test/run-recheck.js /tmp/web.html /tmp/shots   # 재검토: 목표 재축하, 선생님 메뉴 비밀번호, 터치 길게 누르기, 쉬는 날 잠금, 저장 공간, 기록 정리
 node test/run-features.js /tmp/web.html /tmp/preview.html /tmp/shots   # 수업 시간 잠금, 선생님만 지우기, 학급 목표, 칭찬 음성, 백업 알림
 node test/run-review.js /tmp/web.html /tmp/preview.html /tmp/shots   # 두 탭, 결석 해제, 학급 전환 중 재시도, 전체화면, 아래쪽 배치

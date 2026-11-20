@@ -235,6 +235,10 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 .emo{display:flex;flex-wrap:wrap}
 .emo button{width:54px;height:54px;font-size:28px;border:0;background:none}
 
+/* 아주 큰 화면(4K를 그대로 쓰는 전자칠판): 이름표는 이미 커지므로, 머리 부분·창·설정 화면도 함께 키워 손가락으로 누르기 쉽게 */
+@media (min-width:2400px) and (min-height:1300px){
+  .top,.wrap,.shade .modal,.toast,.banner,.lockbox,.center,#or-login>div{zoom:1.6}
+}
 @media (max-width:1100px){
   .title{font-size:30px;margin-left:16px}.clock{font-size:28px;margin-left:16px}
   .prog .lab{display:none}.bar{width:130px}.prog .num{font-size:22px;min-width:62px}

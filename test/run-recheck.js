@@ -110,6 +110,17 @@ async function watchBanners(p) {
   nb = await r.evaluate(function () { return Object.keys(localStorage).filter(function (k) { return /^or_book_/.test(k); }).length; });
   check('6-2. 지운 학급의 기록이 남지 않는다', nb === 0, nb + '개');
 
+  // ---- 7. 아주 오래된 브라우저(fetch 없음)에서는 멈추지 않고 이유를 알려 준다 ----
+  var oc = await b.newContext({ viewport: { width: 1400, height: 900 } });
+  // fetch 를 아예 없는 것처럼 만든다 (검사용 가짜 서버가 다시 넣어도 무시)
+  await oc.addInitScript(function () { Object.defineProperty(window, 'fetch', { configurable: false, get: function () { return undefined; }, set: function () {} }); });
+  var o = await oc.newPage();
+  o.on('pageerror', function (e) { errs.push('오래된 브라우저: ' + String(e)); });
+  await o.goto(url);
+  var oldMsg = await o.waitForFunction(function () { var t = document.querySelector('.center p'); return t && /너무 오래되어/.test(t.textContent) && t.textContent; }, null, { timeout: 10000 })
+    .then(function (h) { return h.jsonValue(); }).catch(function () { return ''; });
+  check('7. 아주 오래된 브라우저에서는 Chrome을 설치하라고 알려 준다', /Chrome/.test(oldMsg), oldMsg.slice(0, 30) || (await o.textContent('#app')).slice(0, 30));
+
   check('오류 없음', errs.length === 0, errs.join(' | '));
   console.log(results.join('\n'));
   await b.close();
