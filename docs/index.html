@@ -137,7 +137,9 @@ body.hasimg .hero .arrow{text-shadow:0 0 6px #fff,0 0 12px #fff}
 }
 .name{margin-left:1.25em;font-size:1.9em;line-height:1.12;white-space:nowrap;overflow:hidden}
 .name.long{font-size:1.45em;line-height:1.46}
-.role{margin-top:.1em;font-size:1.12em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.role{margin-top:.15em;font-size:1.28em;line-height:1.2;color:#3a3835;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.role.m{font-size:1.08em}.role.s{font-size:.94em}
+.role i{font-size:.9em}
 .role i{font-style:normal;margin-right:.2em}
 .slots{position:absolute;left:0;right:0;bottom:.5em;display:flex;justify-content:center;align-items:center}
 .slot{
@@ -242,6 +244,10 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 .emo button{width:54px;height:54px;font-size:28px;border:0;background:none}
 
 /* 아주 큰 화면(4K를 그대로 쓰는 전자칠판): 이름표는 이미 커지므로, 머리 부분·창·설정 화면도 함께 키워 손가락으로 누르기 쉽게 */
+@media (prefers-reduced-motion: reduce){
+  *,*:before,*:after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  .clock i,.hero .arrow{animation:none !important}
+}
 @media (min-width:2400px) and (min-height:1300px){
   .top,.wrap,.shade .modal,.toast,.banner,.lockbox,.center,#or-login>div{zoom:1.6}
 }
@@ -294,7 +300,7 @@ table.st td.nm small{font-family:'Gaegu',sans-serif;font-size:.8em;margin-left:8
 <canvas id="fx"></canvas>
 <script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script>window.ONE_ROLE_BUILD = "2026-11-20 12:35";</script>
+<script>window.ONE_ROLE_BUILD = "2026-11-27 14:21";</script>
 <script>
 /**
  * 우리 반 1인 1역 — Google Apps Script 서버 코드
@@ -1962,6 +1968,7 @@ function 설치점검() {
 
 </script>
 <script>var BOOT = { c: (location.search.match(/[?&]c=([a-z0-9]+)/) || [])[1] || "", url: location.origin + location.pathname, web: true };</script>
+<script>if (window.navigator && navigator.serviceWorker && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) { navigator.serviceWorker.register("../sw.js", { scope: "../" }).catch(function () { return navigator.serviceWorker.register("sw.js"); }).catch(function () {}); }</script>
 <script>
 (function(){
 'use strict';
@@ -2034,7 +2041,9 @@ function sndUndo(){ tone(420, 0, .18, 'sine', .2, 180); }
 /* ---------- 색종이 ---------- */
 var cv = document.getElementById('fx'), cx = cv.getContext('2d'), parts = [], raf = 0;
 function sizeFx(){ cv.width = window.innerWidth; cv.height = window.innerHeight; }
+var REDUCE = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 function burst(x, y, n, rain){
+  if (REDUCE) return;   // 움직임 줄이기 설정: 색종이를 뿌리지 않는다
   for (var i = 0; i < n; i++) {
     var a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 9;
     parts.push({
@@ -2083,6 +2092,7 @@ function stampSvg(i, k, fresh){
 
 /* 도장 손잡이가 내려와 꾹 찍고 올라가는 모션 */
 function press(r){
+  if (REDUCE) return;   // 움직임 줄이기 설정: 도장 손잡이가 내려오지 않고 자국만 남는다
   var w = Math.max(46, r.width * 1.12), h = w * 1.45;
   var d = document.createElement('div'); d.className = 'presser';
   d.style.cssText = 'left:' + (r.left + r.width / 2 - w / 2) + 'px;top:' + (r.top + r.height * .86 - h) + 'px;width:' + w + 'px;height:' + h + 'px';
@@ -2131,13 +2141,13 @@ function whereHtml(){
 function newClassModal(){
   modal('<h3>새 학급 만들기</h3>' +
     (canGoogle() && isLocal() ? '<div class="gload"><span class="hand">구글 시트로 쓰던 학급이 있나요?</span><button class="btn small" data-act="gload">내 구글 시트 학급 불러오기</button></div>' : '') +
-    '<div class="field"><label>학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
+    '<div class="field"><label for="nc-name">학급 이름</label><input class="in" id="nc-name" maxlength="20" placeholder="예: 2학년 3반"></div>' +
     (canGoogle() ? whereHtml() :
      isLocal() ? '<p class="hand" style="margin:0 0 14px;font-size:17px">기록은 이 기기의 브라우저에 저장돼요.</p>' :
      BOOT.web ? '<p class="hand" style="margin:0 0 14px;font-size:17px">로그인한 구글 드라이브에 "1인 1역 기록" 스프레드시트가 새로 만들어져요.</p>' :
     '<div class="field"><label>기록할 구글 스프레드시트 주소 (안 적어도 돼요)</label><input class="in" id="nc-url" placeholder="비워 두면 새 시트를 만들어요">' +
     '<p class="hand" style="margin:6px 0 0;font-size:17px">비워 두면 앱을 설치한 구글 드라이브에 새 시트가 만들어져요. 이미 쓰던 시트가 있으면 그 주소를 붙여 넣으세요.</p></div>') +
-    '<div class="field"><label>설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
+    '<div class="field"><label for="nc-pw">설정 비밀번호 (4자 이상)</label><input class="in" id="nc-pw" type="password" inputmode="numeric" autocomplete="off"></div>' +
     '<label class="hand" style="display:flex;align-items:center;font-size:19px;margin:-4px 0 4px"><input type="checkbox" id="nc-low" style="width:24px;height:24px;margin-right:8px">저학년이에요 (이름표를 화면 아래쪽에)</label>' +
     '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="createclass">만들기</button></div>');
 }
@@ -2281,7 +2291,8 @@ function cardHtml(s, i){
   var cls = 'card c' + (i % 6) + ' t' + s.target + (s.absent ? ' absent' : '') + (s.done > 0 && !s.absent ? ' some' : '');
   var h = '<div class="' + cls + '" id="card-' + i + '" data-act="stamp" data-i="' + i + '" style="transform:rotate(' + tilt + 'deg)">';
   h += '<span class="no">' + esc(s.no) + '</span><div class="name' + (s.name.length > 4 ? ' long' : '') + '">' + esc(s.name) + '</div>';
-  h += '<div class="role hand"><i>' + esc(iconOf(s)) + '</i>' + esc(s.role || '역할을 정해요') + '</div>';
+  var rl = (s.role || '역할을 정해요').length;
+  h += '<div class="role' + (rl > 10 ? ' s' : rl > 7 ? ' m' : '') + '"><i>' + esc(iconOf(s)) + '</i>' + esc(s.role || '역할을 정해요') + '</div>';
   h += '<div class="slots" id="slots-' + i + '">' + slotsHtml(s, i, -1) + '</div>';
   if (S.st.ue) h += '<button class="undo" data-act="undo" data-i="' + i + '">지우기</button>';
   var k = streakNow(s);
@@ -2378,7 +2389,7 @@ function teacherAuth(cb){
   // 선생님이 연달아 고칠 때만 편하도록 1분 동안만 기억한다. (자리를 뜬 뒤 학생이 길게 눌러도 다시 묻는다)
   if (S.tpw && Date.now() - S.tpwAt < 60 * 1000) { S.tpwAt = Date.now(); cb(); return; }
   S.tcb = cb;
-  modal('<h3>선생님 비밀번호</h3><input class="in" id="tpw" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
+  modal('<h3>선생님 비밀번호</h3><input class="in" id="tpw" aria-label="선생님 비밀번호" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
     '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="tpwok">확인</button></div>');
 }
 function teacherAuthOk(){
@@ -2593,7 +2604,7 @@ function renderStickers(){
     }
     var add = (full ? 1 : 0) - (s.base ? 1 : 0);
     var sk = streakNow(s);
-    h += '<td>' + (sk >= 2 ? sk + '일' : '') + '</td><td>' + (s.monthFull + add) + '<small style="opacity:.6"> / ' + Math.max(s.monthDays, s.monthFull + add) + '일</small></td><td>' + (s.total + add) + '개</td></tr>';
+    h += '<td>' + (sk >= 2 ? sk + '일' : '') + '</td><td>' + (s.monthFull + add) + '<small style="opacity:.78"> / ' + Math.max(s.monthDays, s.monthFull + add) + '일</small></td><td>' + (s.total + add) + '개</td></tr>';
   }
   h += '</table><p class="legend hand"><span class="dot full" style="background:#f39a2b">★</span>다 했어요<span class="dot part">·</span>조금 했어요<span class="dot none"></span>아직</p></div>';
   app.innerHTML = h;
@@ -2601,7 +2612,7 @@ function renderStickers(){
 
 /* ---------- 설정 ---------- */
 function askPw(){
-  modal('<h3>선생님 비밀번호</h3><input class="in" id="pw" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
+  modal('<h3>선생님 비밀번호</h3><input class="in" id="pw" aria-label="선생님 비밀번호" type="password" inputmode="numeric" autocomplete="off" style="width:100%">' +
     '<div class="btns"><button class="btn" data-act="close">취소</button><button class="btn yellow" data-act="login">확인</button></div>');
 }
 function login(){
@@ -2644,7 +2655,7 @@ function parseBulk(text){
 function bulkModal(first){
   modal('<h3>' + (first ? '우리 반 친구들을 넣어 주세요' : '한꺼번에 붙여 넣기') + '</h3>' +
     '<p class="hand" style="font-size:18px;margin:0 0 8px;line-height:1.35">한 줄에 한 명씩 <b>이름 역할</b> 순서로 적어요. 엑셀이나 한글 표에서 복사해 붙여 넣어도 돼요. 역할은 나중에 적어도 됩니다.</p>' +
-    '<textarea class="in" id="bulk" rows="9" style="width:100%;font-size:18px;line-height:1.5" placeholder="김하늘 칠판 지우기&#10;이바다 우유 나르기&#10;박구름 화분 물 주기"></textarea>' +
+    '<textarea class="in" id="bulk" aria-label="명단" rows="9" style="width:100%;font-size:18px;line-height:1.5" placeholder="김하늘 칠판 지우기&#10;이바다 우유 나르기&#10;박구름 화분 물 주기"></textarea>' +
     '<div class="btns">' + (first ? '<button class="btn" data-act="close">나중에 하기</button>' : '<button class="btn" data-act="close">취소</button><button class="btn" data-act="bulkadd">지금 명단에 더하기</button>') +
     '<button class="btn yellow" data-act="bulkset">' + (first ? '넣기' : '전부 바꾸기') + '</button></div>');
   var m = document.querySelector('#shade .modal'); if (m) m.style.width = '560px';
@@ -2671,9 +2682,9 @@ function renderSettings(){
     h += '<div class="row rowhead"><span class="w-no" style="text-align:center">번호</span><span class="w-name">이름</span><span class="w-role">역할</span><span style="width:52px">그림</span><span class="cnt">하루</span><span style="width:44px"></span></div>';
     for (var r = 0; r < S.edit.length; r++) {
       var e = S.edit[r];
-      h += '<div class="row"><input class="in w-no" data-f="no" data-i="' + r + '" value="' + esc(e.no) + '" maxlength="6" inputmode="numeric">' +
-        '<input class="in w-name" data-f="name" data-i="' + r + '" value="' + esc(e.name) + '" maxlength="12" placeholder="이름">' +
-        '<input class="in w-role" data-f="role" data-i="' + r + '" value="' + esc(e.role) + '" maxlength="20" placeholder="역할">' +
+      h += '<div class="row"><input class="in w-no" data-f="no" aria-label="번호" data-i="' + r + '" value="' + esc(e.no) + '" maxlength="6" inputmode="numeric">' +
+        '<input class="in w-name" data-f="name" aria-label="이름" data-i="' + r + '" value="' + esc(e.name) + '" maxlength="12" placeholder="이름">' +
+        '<input class="in w-role" data-f="role" aria-label="역할" data-i="' + r + '" value="' + esc(e.role) + '" maxlength="20" placeholder="역할">' +
         '<button class="ico" data-act="emoji" data-i="' + r + '">' + esc(iconOf(e)) + '</button>' +
         '<button class="btn small cnt" data-act="cnt" data-i="' + r + '">' + e.target + '번</button>' +
         '<button class="btn small" data-act="delrow" data-i="' + r + '">✕</button></div>';
@@ -2691,16 +2702,16 @@ function renderSettings(){
     h += '<h3>수업 시간 잠금</h3><p class="note">켜 두면 수업 시간에는 이름표를 눌러도 도장이 찍히지 않아요. 아침, 쉬는 시간, 점심시간, 방과 후에는 찍을 수 있어요. 선생님은 칠판에서 비밀번호로 잠깐 풀 수 있어요.</p>' +
       '<div class="chips"><button class="btn' + (L.on ? ' green' : '') + '" data-act="lockon" data-v="1">켜기</button><button class="btn' + (L.on ? '' : ' green') + '" data-act="lockon" data-v="0">끄기</button></div>';
     for (var li = 0; li < L.list.length; li++) {
-      h += '<div class="row"><span class="pn">' + (li + 1) + '교시</span><input class="in w-time" type="time" data-l="0" data-i="' + li + '" value="' + L.list[li][0] + '">' +
-        '<span>~</span><input class="in w-time" type="time" data-l="1" data-i="' + li + '" value="' + L.list[li][1] + '"><button class="btn small" data-act="lockdel" data-i="' + li + '">✕</button></div>';
+      h += '<div class="row"><span class="pn">' + (li + 1) + '교시</span><input class="in w-time" type="time" data-l="0" aria-label="시작 시각" data-i="' + li + '" value="' + L.list[li][0] + '">' +
+        '<span>~</span><input class="in w-time" type="time" data-l="1" aria-label="끝 시각" data-i="' + li + '" value="' + L.list[li][1] + '"><button class="btn small" data-act="lockdel" data-i="' + li + '">✕</button></div>';
     }
     h += '<div class="row"><button class="btn small" data-act="lockadd">+ 교시 추가</button><button class="btn small" data-act="lockdefault">기본 시간표로</button><span class="grow"></span><button class="btn yellow" data-act="locksave">시간표 저장</button></div>';
     h += '<h3>도장 지우기</h3><p class="note">"선생님만"이면 이름표의 [지우기] 버튼이 사라져요. 지울 때는 이름표를 <b>꾹 길게 눌러</b> 비밀번호를 넣으세요. 결석 표시도 거기서 할 수 있어요.</p>' +
       '<div class="chips"><button class="btn' + (ad.ue ? '' : ' green') + '" data-act="ue" data-v="0">선생님만</button><button class="btn' + (ad.ue ? ' green' : '') + '" data-act="ue" data-v="1">학생도 지울 수 있게</button></div>';
     h += '<h3>학급 목표</h3><p class="note">출석한 친구가 <b>모두</b> 1인 1역을 다 한 날을 모아요. 정한 날 수를 채우면 칠판에서 크게 축하해요.</p>' +
       (g ? '<p class="hand" style="font-size:21px;margin:0 0 8px">지금 ' + (g.done ? '🎉 달성! ' : '🎯 ') + g.count + ' / ' + g.target + '일 · ' + (+g.start.slice(5, 7)) + '월 ' + (+g.start.slice(8)) + '일부터</p>' : '') +
-      '<div class="row"><input class="in" id="g-n" type="number" min="1" max="999" inputmode="numeric" style="width:90px" value="' + (g ? g.target : 10) + '"><span>일 모으면</span>' +
-      '<input class="in w-role" id="g-t" maxlength="30" placeholder="예: 피자 파티, 자유 놀이 시간" value="' + esc(g ? g.reward : '') + '"></div>' +
+      '<div class="row"><input class="in" id="g-n" aria-label="목표 일수" type="number" min="1" max="999" inputmode="numeric" style="width:90px" value="' + (g ? g.target : 10) + '"><span>일 모으면</span>' +
+      '<input class="in w-role" id="g-t" aria-label="목표 보상" maxlength="30" placeholder="예: 피자 파티, 자유 놀이 시간" value="' + esc(g ? g.reward : '') + '"></div>' +
       '<div class="row"><button class="btn yellow" data-act="goalsave">' + (g ? '목표 저장' : '목표 시작하기') + '</button>' +
       (g ? '<button class="btn" data-act="goalreset">오늘부터 다시 세기</button><button class="btn small" data-act="goaloff">목표 끄기</button>' : '') + '</div>';
   } else if (S.tab === 'look') {
@@ -2718,9 +2729,9 @@ function renderSettings(){
     h += '<h3>쉬는 날</h3><p class="note">토요일과 일요일은 자동으로 쉬어요. 공휴일, 재량휴업일, 방학을 넣어 주세요. 하루만 쉬면 끝 날짜는 비워 두세요.</p>';
     for (var d = 0; d < S.rest.length; d++) {
       var x = S.rest[d];
-      h += '<div class="row"><input class="in w-date" type="date" data-g="start" data-i="' + d + '" value="' + esc(x.start) + '">' +
-        '<span>~</span><input class="in w-date" type="date" data-g="end" data-i="' + d + '" value="' + esc(x.end === x.start ? '' : x.end) + '">' +
-        '<input class="in w-role" data-g="name" data-i="' + d + '" value="' + esc(x.name) + '" maxlength="20" placeholder="예: 여름방학">' +
+      h += '<div class="row"><input class="in w-date" type="date" data-g="start" aria-label="쉬는 날 시작" data-i="' + d + '" value="' + esc(x.start) + '">' +
+        '<span>~</span><input class="in w-date" type="date" data-g="end" aria-label="쉬는 날 끝" data-i="' + d + '" value="' + esc(x.end === x.start ? '' : x.end) + '">' +
+        '<input class="in w-role" data-g="name" aria-label="쉬는 날 이름" data-i="' + d + '" value="' + esc(x.name) + '" maxlength="20" placeholder="예: 여름방학">' +
         '<button class="btn small" data-act="delrest" data-i="' + d + '">✕</button></div>';
     }
     h += '<div class="row" style="margin-top:14px"><button class="btn" data-act="addrest">+ 쉬는 날 추가</button><span class="grow"></span><button class="btn yellow" data-act="saverest">저장하기</button></div>';
@@ -2739,14 +2750,14 @@ function renderSettings(){
     } else {
     h += '<h3>기록되는 스프레드시트</h3><p class="note">지금 시트: <a href="' + esc(ad.sheetUrl) + '" target="_blank">열어 보기</a><br>새 시트로 바꾸면 명단과 쉬는 날은 따라가고, 지난 기록은 예전 시트에 남아요.' +
       (BOOT.web ? '' : ' 주소를 직접 넣을 때는 앱을 설치한 구글 계정으로 만든 시트를 쓰세요.') + '</p><div class="field">' +
-      (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
+      (BOOT.web ? '' : '<div class="line"><input class="in" id="s-url" aria-label="새 스프레드시트 주소" placeholder="새 스프레드시트 주소 붙여넣기"><button class="btn" data-act="savesheet">주소 바꾸기</button></div>') +
       '<div class="line" style="margin-top:10px;align-items:center"><button class="btn green" data-act="newsheet">새 스프레드시트 만들어서 바꾸기</button></div>' +
       '<p class="note" style="margin:8px 0 0">새 파일은 ' + (BOOT.web ? '로그인한' : '이 앱을 설치한') + ' 구글 드라이브에 만들어져요.</p></div>' +
       (BOOT.web && window.ONE_ROLE ? '<h3>구글 계정</h3><p class="note" style="margin:0 0 6px">로그인 없이 이 기기에만 저장하려면 <b>저장 방식 바꾸기</b>를 누르세요.</p><div class="row"><button class="btn small" data-act="mode">저장 방식 바꾸기</button></div><div class="field"><div class="line" style="align-items:center"><span class="hand" style="font-size:19px;flex:1">' +
         esc(window.ONE_ROLE.email() || '로그인됨') + '</span><button class="btn" data-act="logout">로그아웃</button></div></div>' + '<p class="note" style="margin-top:-6px">앱은 이 계정의 드라이브에서 <b>이 앱이 만든 스프레드시트만</b> 볼 수 있어요. <a href="privacy.html#login" target="_blank" rel="noopener">개인정보 안내</a></p>' : '');
     }
-    h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
-      '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
+    h += '<h3>학급 이름</h3><div class="field"><div class="line"><input class="in" id="s-name" aria-label="학급 이름" maxlength="20" value="' + esc(ad.name) + '"><button class="btn" data-act="savename">이름 바꾸기</button></div></div>' +
+      '<h3>비밀번호</h3><div class="field"><div class="line"><input class="in" id="s-pw" aria-label="새 비밀번호" type="password" inputmode="numeric" autocomplete="off" placeholder="새 비밀번호 (4자 이상)"><button class="btn" data-act="savepw">비밀번호 바꾸기</button></div></div>' +
       (BOOT.url ? '<h3>우리 반 바로가기 주소</h3><p class="note">전자칠판 즐겨찾기에 이 주소를 넣어 두면 바로 우리 반이 열려요.</p><div class="url">' + esc(BOOT.url + '?' + (BOOT.web && !isLocal() ? 'g&' : '') + 'c=' + S.code) + '</div><br>' : '') +
       '<div class="row"><button class="btn" data-act="pick">다른 학급으로 가기</button><span class="grow"></span><button class="btn red small" data-act="delclass">이 학급 지우기</button></div>';
   }
@@ -2772,6 +2783,7 @@ function adminCall(fn, extra, ok){ api(fn, [S.code, S.pw].concat(extra), ok); }
 
 /* ---------- 그리기 ---------- */
 function render(){
+  if (S.lastView !== S.view) { var ot = document.querySelector('.toast'); if (ot) ot.parentNode.removeChild(ot); S.lastView = S.view; }
   if (S.view === 'board') renderBoard();
   else if (S.view === 'stickers') renderStickers();
   else if (S.view === 'settings') renderSettings();

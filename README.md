@@ -35,6 +35,12 @@
 두 방식은 같은 화면(`apps-script/Index.html`)과 같은 기록 로직(`apps-script/Code.gs`)을 씁니다.
 웹 버전은 `web/adapter.js`가 Apps Script 대신 Google Sheets API로 읽고 씁니다.
 
+## 인터넷이 끊겼을 때
+
+웹 버전은 서비스 워커(`sw.js`, `docs/sw.js` 같은 파일 두 벌)로 앱 화면과 글꼴을 보관합니다. 인터넷이 될 때는 항상 새로 받아 오고,
+끊겼거나 4초 안에 응답이 없을 때만 보관본을 씁니다. 그래서 "이 기기에 저장" 방식은 한 번 연 기기에서 인터넷 없이도 열립니다.
+구글 로그인과 구글 시트 통신은 건드리지 않습니다.
+
 ## 설치 꾸러미
 
 `dist/1인1역_설치꾸러미.zip`에 설치 안내서(PDF), 붙여 넣을 코드, 체험판, 소개글이 들어 있습니다.
@@ -89,6 +95,7 @@
 ```
 node tools/build-web.js --mock /tmp/web.html && node test/run-web.js /tmp/web.html /tmp/shots   # 웹 버전
 (cd docs && python3 -m http.server 8765 &); node test/run-csp.js http://127.0.0.1:8765/ /tmp/shots <사진>   # 배포본 보안 규칙: 기능은 되고 구글 외 전송은 막힘
+(python3 -m http.server 8765 &); node test/run-env.js /tmp/web.html /tmp/preview.html /tmp/shots http://127.0.0.1:8765/   # 기기 8종, 회전, 다크 모드, 움직임 줄이기, 느린 기기, 구글 iframe, 인터넷 끊김
 node test/run-touch.js /tmp/web.html /tmp/shots   # 터치 전자칠판 흉내: 손가락 누르기, 빠른 연타, 길게 누르기, 미끄러짐
 node test/run-recheck.js /tmp/web.html /tmp/shots   # 재검토: 목표 재축하, 선생님 메뉴 비밀번호, 터치 길게 누르기, 쉬는 날 잠금, 저장 공간, 기록 정리
 node test/run-features.js /tmp/web.html /tmp/preview.html /tmp/shots   # 수업 시간 잠금, 선생님만 지우기, 학급 목표, 칭찬 음성, 백업 알림
