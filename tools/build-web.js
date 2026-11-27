@@ -19,7 +19,11 @@ var parts = [
   '<script>\n' + code + '\n</script>',
   '<script>\n' + read('web/adapter.js') + '\n</script>',
   '<script>var BOOT = { c: (location.search.match(/[?&]c=([a-z0-9]+)/) || [])[1] || "", url: location.origin + location.pathname, web: true };</script>'
-];
+].concat(mock ? [] : [
+  // 인터넷이 끊겨도 앱이 열리도록 서비스 워커를 등록한다. 저장소 맨 위(…/code/)를 함께 맡도록 위 폴더 것을 먼저 쓰고, 없으면 이 폴더 것을 쓴다.
+  '<script>if (window.navigator && navigator.serviceWorker && (location.protocol === "https:" || /^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname))) {' +
+  ' navigator.serviceWorker.register("../sw.js", { scope: "../" }).catch(function () { return navigator.serviceWorker.register("sw.js"); }).catch(function () {}); }</script>'
+]);
 html = html.replace(boot, function () { return parts.join('\n'); });
 
 // 브라우저 보안 규칙: 이 페이지가 정보를 보낼 수 있는 곳을 구글 주소로만 제한한다.
